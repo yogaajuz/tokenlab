@@ -22,7 +22,7 @@ export function generateSolidityContract(config) {
       buyBurnFee: 1,
       sellBurnFee: 1,
       transferBurnFee: 0,
-      marketingWallet: "0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8"
+      marketingWallet: ""
     },
     limitsConfig = {
       maxTxPercent: 1.0,
@@ -162,7 +162,7 @@ contract ${cleanName} is Context, IERC20, IERC20Metadata, Ownable {
     uint256 public maxWalletAmount;
 
     // Taxes (20lab configuration)
-    address public marketingWallet = ${taxConfig.marketingWallet ? `address(${taxConfig.marketingWallet})` : 'msg.sender'};
+    address public marketingWallet = ${taxConfig.marketingWallet && taxConfig.marketingWallet.startsWith('0x') ? `address(${taxConfig.marketingWallet})` : 'msg.sender'};
     
     uint256 public buyMarketingFee = ${taxConfig.buyMarketingFee || 2};
     uint256 public sellMarketingFee = ${taxConfig.sellMarketingFee || 3};

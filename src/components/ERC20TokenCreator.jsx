@@ -44,8 +44,16 @@ export default function ERC20TokenCreator({
   }, [step]);
 
   useEffect(() => {
-    if (wallet?.address && !walletTaxRecipient) {
-      setWalletTaxRecipient(wallet.address);
+    if (wallet?.address) {
+      if (!diffTokenOwner || !tokenOwnerAddress) {
+        setTokenOwnerAddress(wallet.address);
+      }
+      if (!diffSupplyRecipient || !supplyRecipientAddress) {
+        setSupplyRecipientAddress(wallet.address);
+      }
+      if (!walletTaxRecipient) {
+        setWalletTaxRecipient(wallet.address);
+      }
     }
   }, [wallet?.address]);
 
@@ -518,7 +526,7 @@ export default function ERC20TokenCreator({
         chainName: selectedChain.name,
         decimals: Number(decimals || 18),
         totalSupply: (initialSupply || '1000000').toString().replace(/\s+/g, ''),
-        owner: wallet?.address || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8',
+        owner: (diffTokenOwner && tokenOwnerAddress) || wallet?.address || 'Connected Wallet',
         createdAt: new Date().toISOString()
       };
       saveStoredToken(demoRecord);
@@ -1147,16 +1155,25 @@ export default function ERC20TokenCreator({
                   <div className="w-8 h-8 rounded-full bg-[#07e3f8]/20 flex items-center justify-center shrink-0 text-[#07e3f8]">
                     <WalletIcon size={16} />
                   </div>
-                  <div className="text-xs font-serif leading-relaxed">
+                  <div className="text-xs font-serif leading-relaxed grow">
                     <div className="font-bold text-white flex items-center gap-2">
-                      <span>Recipient &amp; Ownership Destination</span>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-mono">Auto-Assigned</span>
+                      <span>Default Token Owner &amp; Supply Destination</span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-mono">
+                        {wallet?.connected && wallet?.address ? 'Connected Wallet' : 'Auto-Assigned to Connected Wallet'}
+                      </span>
                     </div>
                     <p className="text-foreground/70 mt-1">
-                      By default, <strong>100% of initial supply</strong> and <strong>complete contract owner keys</strong> are automatically delivered into your connected wallet:
+                      By default, <strong>100% of initial supply</strong> and <strong>complete contract owner keys</strong> are automatically delivered into your connected Web3 wallet upon deployment:
                     </p>
-                    <div className="mt-1.5 font-mono text-emerald-400 text-[11px] bg-[#071726] px-2 py-1 rounded inline-block truncate max-w-full border border-emerald-500/20">
-                      {wallet?.address || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8'}
+                    <div className="mt-1.5 font-mono text-emerald-400 text-[11px] bg-[#071726] px-2 py-1 rounded inline-flex items-center gap-2 max-w-full border border-emerald-500/20">
+                      {wallet?.connected && wallet?.address ? (
+                        <>
+                          <span className="truncate">{wallet.address}</span>
+                          <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-sans font-bold shrink-0">Connected Wallet (Default Owner)</span>
+                        </>
+                      ) : (
+                        <span className="italic text-slate-400">Connected Wallet (Your active wallet will be set as owner upon deployment)</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -2267,16 +2284,24 @@ export default function ERC20TokenCreator({
                       <div className="flex justify-between items-center">
                         <span className="text-slate-400">Token Owner &amp; Supply:</span>
                         <span className="font-mono text-emerald-400 text-right truncate max-w-[240px]">
-                          {diffSupplyRecipient && supplyRecipientAddress 
-                            ? supplyRecipientAddress 
-                            : (wallet?.address || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8')}
+                          {diffTokenOwner && tokenOwnerAddress
+                            ? tokenOwnerAddress
+                            : (diffSupplyRecipient && supplyRecipientAddress
+                                ? supplyRecipientAddress
+                                : (wallet?.connected && wallet?.address 
+                                    ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)} (Connected Wallet)` 
+                                    : 'Connected Wallet'))}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-slate-400">DEX Trading Tax Recipient:</span>
                         <span className="font-mono text-[#07e3f8] text-right truncate max-w-[240px]">
                           {walletTax 
-                            ? (walletTaxRecipient || wallet?.address || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8') 
+                            ? (walletTaxRecipient 
+                                ? `${walletTaxRecipient.slice(0, 6)}...${walletTaxRecipient.slice(-4)}` 
+                                : (wallet?.connected && wallet?.address 
+                                    ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)} (Connected Wallet)` 
+                                    : 'Connected Wallet')) 
                             : 'No Trading Tax Enabled'}
                         </span>
                       </div>
@@ -2331,7 +2356,7 @@ export default function ERC20TokenCreator({
                         sellMarketingFee: walletTax ? Number(sellWalletTax) : 0,
                         buyBurnFee: autoBurnTax ? Number(buyAutoBurnTax) : 0,
                         sellBurnFee: autoBurnTax ? Number(sellAutoBurnTax) : 0,
-                        marketingWallet: walletTaxRecipient || wallet?.address || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8'
+                        marketingWallet: walletTaxRecipient || wallet?.address || 'msg.sender'
                       }
                     })}
                   </pre>
