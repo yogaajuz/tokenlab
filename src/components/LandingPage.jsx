@@ -423,7 +423,7 @@ export default function LandingPage({
           <div className="flex max-w-[1000px] flex-col gap-3 items-center mx-auto text-center">
             <p className="text-primary font-serif">Audits</p>
             <h3 className="text-3xl md:text-5xl font-bold font-serif tracking-wide !leading-normal text-white">
-              Audited tokens created on 20lab
+              Audited tokens created on RobinPump Deployer
             </h3>
           </div>
 
@@ -497,7 +497,7 @@ export default function LandingPage({
             <div className="space-y-6">
               <h4 className="text-2xl font-bold font-serif text-white">Engineered for Reliability</h4>
               <p className="font-serif text-foreground/80 leading-relaxed">
-                20lab token contracts are battle-tested across thousands of successful deployments on Ethereum, Solana, Base, BSC, and Sui. Every line of code is structured to protect founders and investors alike.
+                RobinPump Deployer token contracts are battle-tested across thousands of successful deployments on Ethereum, Solana, Base, BSC, and Sui. Every line of code is structured to protect founders and investors alike.
               </p>
               
               <ul className="space-y-3 font-serif text-sm text-foreground/90">
@@ -704,7 +704,7 @@ export default function LandingPage({
           <div className="flex max-w-[1000px] flex-col gap-3 items-center mx-auto text-center">
             <p className="text-primary font-serif">Reviews</p>
             <h3 className="text-3xl md:text-5xl font-bold font-serif tracking-wide !leading-normal text-white">
-              What Users say about 20lab
+              What Users say about RobinPump Deployer
             </h3>
             
             {/* Trustpilot Stars */}
@@ -821,21 +821,32 @@ export default function LandingPage({
             
             {/* Col 1: Logo & Company Description */}
             <div className="md:col-span-2 space-y-4">
-              <img 
-                alt="20lab logo" 
-                width="138" 
-                height="53" 
-                className="h-10 w-auto object-contain cursor-pointer"
-                src="/20lab-logo-min.svg"
+              <div 
+                className="cursor-pointer flex items-center gap-2.5" 
                 onClick={() => onNavigate('/')}
-              />
+              >
+                <img 
+                  alt="RobinPump Deployer logo" 
+                  width="38" 
+                  height="38" 
+                  className="h-9 w-auto object-contain"
+                  src="/20lab-logo-min.svg"
+                />
+                <div className="flex flex-col">
+                  <span className="font-serif font-black text-lg tracking-tight bg-linear-to-r from-white via-slate-100 to-[#07e3f8] bg-clip-text text-transparent leading-none">
+                    RobinPump
+                  </span>
+                  <span className="text-[10px] uppercase tracking-widest text-[#07e3f8] font-bold font-mono leading-tight">
+                    Deployer
+                  </span>
+                </div>
+              </div>
               <p className="text-sm text-foreground/70 max-w-sm leading-relaxed">
-                20lab is the leading customizable token generator for ERC-20, Solana SPL, and Sui. Create, deploy, and manage your tokens with audited security and gas-optimized performance.
+                RobinPump Deployer is the leading customizable token generator for ERC-20, Solana SPL, and Sui. Create, deploy, and manage your tokens with audited security and gas-optimized performance.
               </p>
               <div className="text-xs text-slate-400 space-y-1 pt-2">
-                <div>20lab — Romana Dmowskiego 3/9, Wrocław, Poland</div>
-                <div>VAT ID: PL9151826889</div>
-                <div>Email: contact@20lab.app</div>
+                <div>RobinPump Deployer — Web3 Decentralized Token Deployment Infrastructure</div>
+                <div>Support: contact@robinpump.app</div>
               </div>
             </div>
 
@@ -880,7 +891,7 @@ export default function LandingPage({
           </div>
 
           <div className="border-t border-[#44617d]/20 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
-            <div>&copy; 2026 20lab. All rights reserved.</div>
+            <div>&copy; 2026 RobinPump Deployer. All rights reserved.</div>
             <div className="flex gap-6">
               <span>Privacy Policy</span>
               <span>Terms of Service</span>

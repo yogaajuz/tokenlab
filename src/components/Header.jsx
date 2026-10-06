@@ -126,9 +126,9 @@ export default function Header({
       <div>
         <nav className="container relative flex items-center justify-between gap-2 py-4 max-w-screen px-4 sm:px-6 lg:px-8 mx-auto">
           
-          {/* 20lab Official Logo */}
+          {/* RobinPump Deployer Brand Logo */}
           <a 
-            className="max-w-[150px] grow basis-20 cursor-pointer flex items-center" 
+            className="cursor-pointer flex items-center gap-2.5 grow-0" 
             onClick={(e) => {
               e.preventDefault();
               onNavigate('/');
@@ -136,14 +136,22 @@ export default function Header({
             href="/"
           >
             <img 
-              alt="20lab logo" 
+              alt="RobinPump Deployer logo" 
               loading="lazy" 
-              width="138" 
-              height="53" 
+              width="38" 
+              height="38" 
               decoding="async" 
-              className="h-10 w-auto object-contain"
+              className="h-9 w-auto object-contain"
               src="/20lab-logo-min.svg"
             />
+            <div className="flex flex-col">
+              <span className="font-serif font-black text-lg tracking-tight bg-linear-to-r from-white via-slate-100 to-[#07e3f8] bg-clip-text text-transparent leading-none">
+                RobinPump
+              </span>
+              <span className="text-[10px] uppercase tracking-widest text-[#07e3f8] font-bold font-mono leading-tight">
+                Deployer
+              </span>
+            </div>
           </a>
 
           {/* Center Navigation Links: App Mode vs Landing Mode */}

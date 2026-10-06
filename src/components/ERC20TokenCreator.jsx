@@ -2183,7 +2183,7 @@ export default function ERC20TokenCreator({
             </h2>
             <div className="font-serif text-sm md:text-base leading-relaxed text-foreground/80 space-y-4">
               <div>
-                Creating an ERC-20 token with 20lab takes about 5 minutes and works in five steps:
+                Creating an ERC-20 token with RobinPump Deployer takes about 5 minutes and works in five steps:
                 <ol className="list-decimal list-inside my-2 space-y-1">
                   <li><b>Connect your Web3 wallet</b> - MetaMask, Rabby, Trust Wallet, Coinbase Wallet, or any wallet supporting WalletConnect</li>
                   <li><b>Choose your blockchain</b> - <a className="text-primary-alt hover:underline" href="/generate/erc20-token/ethereum/">Ethereum</a> for maximum reach, <a className="text-primary-alt hover:underline" href="/generate/erc20-token/base/">Base</a> or <a className="text-primary-alt hover:underline" href="/generate/erc20-token/polygon/">Polygon</a> for low fees, or any of 19 supported EVM chains</li>
@@ -2191,7 +2191,7 @@ export default function ERC20TokenCreator({
                   <li><b>Pick optional features</b> - mintable, pausable, blacklist, transfer taxes, liquidity tax, dividend tax, anti-bot protection, or ERC-2612 permit for gasless approvals</li>
                   <li><b>Review and deploy</b> - confirm the summary, sign the transaction in your wallet, and your ERC-20 token goes live</li>
                 </ol>
-                No Solidity required. No smart contract auditing. The 20lab ERC-20 token creator handles deployment for you using audited, gas-optimized contracts.
+                No Solidity required. No smart contract auditing. The RobinPump Deployer ERC-20 token creator handles deployment for you using audited, gas-optimized contracts.
               </div>
 
               <h3 className="text-lg sm:text-xl font-bold text-white pt-2">Why ERC-20 is the most popular token standard</h3>

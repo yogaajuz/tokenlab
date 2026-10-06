@@ -34,9 +34,9 @@ export function generateSolidityContract(config) {
   const cleanName = name.replace(/[^a-zA-Z0-9]/g, '') || "Token";
 
   return `// SPDX-License-Identifier: MIT
-// Developed by 20lab.app
-// Version: 20lab-v1.9.0
-// Registry: 0x896cB15542A50e084CB01138211daA110b1Fe8F2 (uRegistryV5)
+// Developed by RobinPump Deployer
+// Version: RobinPump-v1.9.0
+// Registry: 0x896cB15542A50e084CB01138211daA110b1Fe8F2
 pragma solidity ^0.8.24;
 
 interface IERC20 {

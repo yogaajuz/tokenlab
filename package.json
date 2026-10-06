@@ -2,7 +2,7 @@
   "name": "tokenlab-app",
   "version": "1.0.0",
   "type": "module",
-  "description": "Multi-Chain No-Code Token Generator & Manager (20LAB Alternative)",
+  "description": "RobinPump Deployer - Multi-Chain No-Code Token Generator & Manager",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
