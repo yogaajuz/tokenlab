@@ -22,7 +22,7 @@ export function generateSolidityContract(config) {
       buyBurnFee: 1,
       sellBurnFee: 1,
       transferBurnFee: 0,
-      marketingWallet: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+      marketingWallet: "0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8"
     },
     limitsConfig = {
       maxTxPercent: 1.0,

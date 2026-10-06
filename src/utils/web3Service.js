@@ -11,7 +11,7 @@ export const INITIAL_DEMO_TOKENS = [
     chainName: 'Ethereum Sepolia',
     decimals: 18,
     totalSupply: '1000000000',
-    owner: '0x71C836466DAB5465F83204C1E371C80f146C8493',
+    owner: '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8',
     features: {
       mintable: true,
       burnable: true,
@@ -43,7 +43,7 @@ export const INITIAL_DEMO_TOKENS = [
     chainName: 'Base Sepolia',
     decimals: 18,
     totalSupply: '500000000',
-    owner: '0x71C836466DAB5465F83204C1E371C80f146C8493',
+    owner: '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8',
     features: {
       mintable: false,
       burnable: true,

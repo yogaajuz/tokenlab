@@ -182,7 +182,7 @@ export default function ERC20TokenCreator({
         // user declined, fallback
       }
     }
-    const demoAddr = '0x71C836466DAB5465F83204C1E371C80f146C8493';
+    const demoAddr = '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8';
     setSandboxMode?.(true);
     setWallet({
       connected: true,
@@ -365,7 +365,7 @@ export default function ERC20TokenCreator({
         chainName: selectedChain.name,
         decimals: Number(decimals || 18),
         totalSupply: (initialSupply || '1000000').toString().replace(/\s+/g, ''),
-        owner: wallet?.address || '0x71C836466DAB5465F83204C1E371C80f146C8493',
+        owner: wallet?.address || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8',
         createdAt: new Date().toISOString()
       };
       saveStoredToken(demoRecord);
@@ -977,7 +977,7 @@ export default function ERC20TokenCreator({
                       By default, <strong>100% of initial supply</strong> and <strong>complete contract owner keys</strong> are automatically delivered into your connected wallet:
                     </p>
                     <div className="mt-1.5 font-mono text-emerald-400 text-[11px] bg-[#071726] px-2 py-1 rounded inline-block truncate max-w-full border border-emerald-500/20">
-                      {wallet?.address || '0x71C836466DAB5465F83204C1E371C80f146C8493'}
+                      {wallet?.address || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8'}
                     </div>
                   </div>
                 </div>
@@ -2082,21 +2082,21 @@ export default function ERC20TokenCreator({
                         <span className="font-mono text-emerald-400 text-right truncate max-w-[240px]">
                           {diffSupplyRecipient && supplyRecipientAddress 
                             ? supplyRecipientAddress 
-                            : (wallet?.address || '0x71C836466DAB5465F83204C1E371C80f146C8493')}
+                            : (wallet?.address || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8')}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-slate-400">DEX Trading Tax Recipient:</span>
                         <span className="font-mono text-[#07e3f8] text-right truncate max-w-[240px]">
                           {walletTax 
-                            ? (walletTaxRecipient || wallet?.address || '0x71C836466DAB5465F83204C1E371C80f146C8493') 
+                            ? (walletTaxRecipient || wallet?.address || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8') 
                             : 'No Trading Tax Enabled'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-slate-400">Platform Treasury Key:</span>
                         <span className="font-mono text-purple-400 text-right truncate max-w-[240px]">
-                          {platformConfig?.recipientWallet || '0x71C836466DAB5465F83204C1E371C80f146C8493'}
+                          {platformConfig?.recipientWallet || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8'}
                         </span>
                       </div>
                     </div>
@@ -2140,7 +2140,7 @@ export default function ERC20TokenCreator({
                         sellMarketingFee: walletTax ? Number(sellWalletTax) : 0,
                         buyBurnFee: autoBurnTax ? Number(buyAutoBurnTax) : 0,
                         sellBurnFee: autoBurnTax ? Number(sellAutoBurnTax) : 0,
-                        marketingWallet: walletTaxRecipient || wallet?.address || '0x71C836466DAB5465F83204C1E371C80f146C8493'
+                        marketingWallet: walletTaxRecipient || wallet?.address || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8'
                       }
                     })}
                   </pre>

@@ -44,7 +44,7 @@ export default function Header({
     if (sandboxMode) {
       setWallet({
         connected: true,
-        address: '0x71C836466DAB5465F83204C1E371C80f146C8493',
+        address: '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8',
         balance: '4.850 ' + (selectedChain?.symbol || 'ETH'),
         isSimulated: true
       });
@@ -83,7 +83,7 @@ export default function Header({
       setSandboxMode(true);
       setWallet({
         connected: true,
-        address: '0x71C836466DAB5465F83204C1E371C80f146C8493',
+        address: '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8',
         balance: '4.850 ' + (selectedChain?.symbol || 'ETH'),
         isSimulated: true
       });

@@ -21,7 +21,7 @@ export const DEFAULT_REGISTRY_BY_CHAIN = {
 };
 
 // Initial simulated owner data for demonstration when using sandbox mode
-export const SIMULATED_OWNER_WALLET = '0x71C836466DAB5465F83204C1E371C80f146C8493';
+export const SIMULATED_OWNER_WALLET = '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8';
 
 export function getCustomRegistryRecords() {
   try {

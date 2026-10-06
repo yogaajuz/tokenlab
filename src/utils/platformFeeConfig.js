@@ -3,7 +3,7 @@
 const PLATFORM_FEE_KEY = 'tokenlab_platform_fee_config';
 
 export const DEFAULT_PLATFORM_CONFIG = {
-  recipientWallet: '0x71C836466DAB5465F83204C1E371C80f146C8493',
+  recipientWallet: '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8',
   creationFeeEth: '0.01',
   vaultBalance: '4.850',
   totalTokensCreated: 42,
@@ -15,7 +15,13 @@ export function getPlatformFeeConfig() {
   try {
     const raw = localStorage.getItem(PLATFORM_FEE_KEY);
     if (raw) {
-      return { ...DEFAULT_PLATFORM_CONFIG, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      // Migrate old placeholder wallet to owner's real wallet
+      if (parsed.recipientWallet === '0x71C836466DAB5465F83204C1E371C80f146C8493') {
+        parsed.recipientWallet = DEFAULT_PLATFORM_CONFIG.recipientWallet;
+        localStorage.setItem(PLATFORM_FEE_KEY, JSON.stringify(parsed));
+      }
+      return { ...DEFAULT_PLATFORM_CONFIG, ...parsed };
     }
   } catch (err) {
     console.error('Error reading platform fee config:', err);
