@@ -138,11 +138,11 @@ export default function Header({
             <img 
               alt="RobinPump Deployer logo" 
               loading="lazy" 
-              width="38" 
-              height="38" 
+              width="40" 
+              height="40" 
               decoding="async" 
-              className="h-9 w-auto object-contain"
-              src="/20lab-logo-min.svg"
+              className="h-10 w-10 object-contain drop-shadow-[0_0_12px_rgba(7,227,248,0.35)]"
+              src="/robinpump-logo.png"
             />
             <div className="flex flex-col">
               <span className="font-serif font-black text-lg tracking-tight bg-linear-to-r from-white via-slate-100 to-[#07e3f8] bg-clip-text text-transparent leading-none">
