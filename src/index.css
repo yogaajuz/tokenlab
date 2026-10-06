@@ -1,0 +1,184 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0c0c1c;
+  --color-foreground: #f1f5f9;
+  --color-card-alt: #28445f;
+  --color-popover: #1a3249;
+  --color-popover-foreground: #fff;
+  --color-primary: #07e3f8;
+  --color-primary-alt: #026cdc;
+  --color-primary-alt-text: #07a0f8;
+  --color-primary-foreground: #040916;
+  --color-secondary: #1a56db;
+  --color-secondary-foreground: #fff;
+  --color-muted: #d9eaec;
+  --color-muted-foreground: #0c0c1c;
+  --color-accent: #07e3f8;
+  --color-accent-foreground: #fff;
+  --color-border: #44617d;
+  --color-input: #44617d;
+  --color-field: #0b2034;
+  --color-form: #1a3249;
+  --color-ring: #ff6767;
+  --color-stepper: #374151;
+  --color-stepper-foreground: #9ca3af;
+  --color-stepper-label: #04b8ef;
+}
+
+@layer base {
+  :root {
+    --primary: #07e3f8;
+    --primary-alt: #026cdc;
+    --primary-foreground: #040916;
+    --form: #1a3249;
+    --field: #0b2034;
+    --stepper: #374151;
+    --stepper-foreground: #9ca3af;
+    --stepper-label: #04b8ef;
+  }
+
+  body {
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #0c0c1c;
+    color: #f1f5f9;
+  }
+
+  h1, h2, h3, h4, .font-serif, .font-display {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* 20lab Exact Theme Classes */
+.bg-form {
+  background-color: #1a3249;
+}
+
+.bg-field {
+  background-color: #0b2034;
+}
+
+.bg-stepper {
+  background-color: #374151;
+}
+
+.text-stepper-foreground {
+  color: #9ca3af;
+}
+
+.text-stepper-label {
+  color: #04b8ef;
+}
+
+.border-form {
+  border-color: #1a3249;
+}
+
+.border-field {
+  border-color: #0b2034;
+}
+
+.center-position-x {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.md\:container-mini {
+  width: 100%;
+  max-width: 48rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Tailwind v4 Linear Gradient Support */
+.bg-linear-to-r {
+  background-image: linear-gradient(to right, var(--tw-gradient-stops, #07e3f8, #026cdc));
+}
+
+.bg-linear-to-l {
+  background-image: linear-gradient(to left, var(--tw-gradient-stops, #07e3f8, #026cdc));
+}
+
+.from-primary {
+  --tw-gradient-from: #07e3f8;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(7, 227, 248, 0));
+}
+
+.to-primary-alt {
+  --tw-gradient-to: #026cdc;
+}
+
+.via-primary\/20 {
+  --tw-gradient-stops: var(--tw-gradient-from), rgba(7, 227, 248, 0.2), var(--tw-gradient-to, rgba(7, 227, 248, 0));
+}
+
+.from-primary\/60 {
+  --tw-gradient-from: rgba(7, 227, 248, 0.6);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(7, 227, 248, 0));
+}
+
+/* 20lab Signature Buttons and Gradients */
+.btn-primary {
+  background: linear-gradient(90deg, #07e3f8 0%, #026cdc 100%);
+  color: #040916;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-primary:hover {
+  opacity: 0.92;
+  box-shadow: 0 0 25px -4px rgba(7, 227, 248, 0.5);
+  transform: translateY(-1px);
+}
+
+.card-gradient-border {
+  border: 2px solid transparent;
+  background: linear-gradient(#0b2034, #0b2034) padding-box,
+              linear-gradient(135deg, rgba(7, 227, 248, 0.4), rgba(7, 227, 248, 0.05), transparent) border-box;
+}
+
+.card-glow-cyan {
+  border: 1px solid rgba(7, 227, 248, 0.15);
+  background: rgba(11, 15, 29, 0.7);
+  backdrop-filter: blur(16px);
+}
+
+.card-glow-cyan:hover {
+  border-color: rgba(7, 227, 248, 0.4);
+  box-shadow: 0 0 30px -5px rgba(7, 227, 248, 0.15);
+}
+
+/* Ambient Radial Glows like 20lab.app */
+.glow-orb-cyan {
+  background: radial-gradient(circle, rgba(0, 194, 255, 0.35) 0%, rgba(7, 227, 248, 0.1) 45%, transparent 70%);
+}
+
+.glow-orb-blue {
+  background: radial-gradient(circle, rgba(23, 74, 255, 0.35) 0%, rgba(36, 83, 255, 0.1) 45%, transparent 70%);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0c0c1c;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #172033;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #07e3f8;
+}

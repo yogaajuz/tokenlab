@@ -1,0 +1,150 @@
+export const SUPPORTED_CHAINS = [
+  {
+    id: 'ethereum',
+    chainId: 1,
+    name: 'Ethereum',
+    symbol: 'ETH',
+    icon: '🔷',
+    color: '#627EEA',
+    isTestnet: false,
+    explorer: 'https://etherscan.io',
+    rpcUrl: 'https://eth.llamarpc.com',
+    platformFee: '0.015 ETH'
+  },
+  {
+    id: 'sepolia',
+    chainId: 11155111,
+    name: 'Ethereum Sepolia',
+    symbol: 'SepoliaETH',
+    icon: '🔷',
+    color: '#627EEA',
+    isTestnet: true,
+    explorer: 'https://sepolia.etherscan.io',
+    rpcUrl: 'https://rpc.sepolia.org',
+    platformFee: 'FREE (Testnet)'
+  },
+  {
+    id: 'bsc',
+    chainId: 56,
+    name: 'BNB Smart Chain',
+    symbol: 'BNB',
+    icon: '🟡',
+    color: '#F3BA2F',
+    isTestnet: false,
+    explorer: 'https://bscscan.com',
+    rpcUrl: 'https://binance.llamarpc.com',
+    platformFee: '0.05 BNB'
+  },
+  {
+    id: 'bsc-testnet',
+    chainId: 97,
+    name: 'BNB Testnet',
+    symbol: 'tBNB',
+    icon: '🟡',
+    color: '#F3BA2F',
+    isTestnet: true,
+    explorer: 'https://testnet.bscscan.com',
+    rpcUrl: 'https://data-seed-prebsc-1-s1.binance.org:8545',
+    platformFee: 'FREE (Testnet)'
+  },
+  {
+    id: 'base',
+    chainId: 8453,
+    name: 'Base',
+    symbol: 'ETH',
+    icon: '🔵',
+    color: '#0052FF',
+    isTestnet: false,
+    explorer: 'https://basescan.org',
+    rpcUrl: 'https://mainnet.base.org',
+    platformFee: '0.008 ETH'
+  },
+  {
+    id: 'base-sepolia',
+    chainId: 84532,
+    name: 'Base Sepolia',
+    symbol: 'ETH',
+    icon: '🔵',
+    color: '#0052FF',
+    isTestnet: true,
+    explorer: 'https://sepolia.basescan.org',
+    rpcUrl: 'https://sepolia.base.org',
+    platformFee: 'FREE (Testnet)'
+  },
+  {
+    id: 'arbitrum',
+    chainId: 42161,
+    name: 'Arbitrum One',
+    symbol: 'ETH',
+    icon: '🔷',
+    color: '#28A0F0',
+    isTestnet: false,
+    explorer: 'https://arbiscan.io',
+    rpcUrl: 'https://arb1.arbitrum.io/rpc',
+    platformFee: '0.008 ETH'
+  },
+  {
+    id: 'polygon',
+    chainId: 137,
+    name: 'Polygon PoS',
+    symbol: 'POL',
+    icon: '🟣',
+    color: '#8247E5',
+    isTestnet: false,
+    explorer: 'https://polygonscan.com',
+    rpcUrl: 'https://polygon-rpc.com',
+    platformFee: '15 POL'
+  },
+  {
+    id: 'optimism',
+    chainId: 10,
+    name: 'OP Mainnet',
+    symbol: 'ETH',
+    icon: '🔴',
+    color: '#FF0420',
+    isTestnet: false,
+    explorer: 'https://optimistic.etherscan.io',
+    rpcUrl: 'https://mainnet.optimism.io',
+    platformFee: '0.008 ETH'
+  },
+  {
+    id: 'avalanche',
+    chainId: 43114,
+    name: 'Avalanche C-Chain',
+    symbol: 'AVAX',
+    icon: '🔺',
+    color: '#E84142',
+    isTestnet: false,
+    explorer: 'https://snowtrace.io',
+    rpcUrl: 'https://api.avax.network/ext/bc/C/rpc',
+    platformFee: '0.5 AVAX'
+  },
+  {
+    id: 'solana-devnet',
+    chainId: 999901,
+    name: 'Solana Devnet',
+    symbol: 'SOL',
+    icon: '🟣',
+    color: '#14F195',
+    isTestnet: true,
+    explorer: 'https://explorer.solana.com/?cluster=devnet',
+    rpcUrl: 'https://api.devnet.solana.com',
+    platformFee: 'FREE (Testnet)',
+    isSolana: true
+  },
+  {
+    id: 'solana-mainnet',
+    chainId: 999902,
+    name: 'Solana Mainnet',
+    symbol: 'SOL',
+    icon: '🟣',
+    color: '#14F195',
+    isTestnet: false,
+    explorer: 'https://explorer.solana.com',
+    rpcUrl: 'https://api.mainnet-beta.solana.com',
+    platformFee: '0.15 SOL',
+    isSolana: true
+  }
+];
+
+export const DEFAULT_CHAIN = SUPPORTED_CHAINS[1]; // Sepolia as default for safe testing
