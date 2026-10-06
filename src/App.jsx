@@ -9,6 +9,7 @@ import TokenDashboard from './components/TokenDashboard';
 import MultiSender from './components/MultiSender';
 import ContractStudio from './components/ContractStudio';
 import ProtocolOwner from './components/ProtocolOwner';
+import ErrorBoundary from './components/ErrorBoundary';
 import Toast from './components/Toast';
 import { DEFAULT_CHAIN } from './utils/chains';
 import { generateSolidityContract } from './utils/solidityGenerator';
@@ -80,107 +81,107 @@ export default function App() {
 
       {/* Main View Area */}
       <div className="flex-1 pt-20">
-        
-        {/* Route 1: Exact Home Landing Page */}
-        {normalizedPath === '/' && (
-          <LandingPage
-            onOpenApp={() => navigate('/generate/')}
-            onSelectFeature={() => navigate('/generate/')}
-            onShowToast={showToast}
-          />
-        )}
-
-        {/* Route 2: Exact /generate/ Hub Page */}
-        {normalizedPath === '/generate' && (
-          <GenerateHub
-            onNavigate={navigate}
-            onShowToast={showToast}
-          />
-        )}
-
-        {/* Route 3: Exact /generate/erc20-token/ Page */}
-        {normalizedPath === '/generate/erc20-token' && (
-          <ERC20TokenCreator
-            onNavigate={navigate}
-            selectedChain={selectedChain}
-            setSelectedChain={setSelectedChain}
-            wallet={wallet}
-            setWallet={setWallet}
-            sandboxMode={sandboxMode}
-            setSandboxMode={setSandboxMode}
-            onShowToast={showToast}
-            onTokenDeployed={(token) => {
-              navigate('/dashboard/');
-            }}
-            onViewCode={(code) => {
-              setStudioCode(code);
-              navigate('/studio');
-            }}
-          />
-        )}
-
-        {/* Route 4: Exact /generate/spl-token/ Page (Solana) */}
-        {normalizedPath === '/generate/spl-token' && (
-          <SolanaForge
-            onNavigate={navigate}
-            wallet={wallet}
-            onShowToast={showToast}
-          />
-        )}
-
-        {/* Route 5: Exact /generate/sui-token/ Page (Sui) */}
-        {normalizedPath === '/generate/sui-token' && (
-          <SuiForge
-            onNavigate={navigate}
-            wallet={wallet}
-            onShowToast={showToast}
-          />
-        )}
-
-        {/* Route 6: Dashboard */}
-        {normalizedPath === '/dashboard' && (
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <TokenDashboard
-              wallet={wallet}
-              selectedChain={selectedChain}
+        <ErrorBoundary>
+          {/* Route 1: Exact Home Landing Page */}
+          {normalizedPath === '/' && (
+            <LandingPage
+              onOpenApp={() => navigate('/generate/')}
+              onSelectFeature={() => navigate('/generate/')}
               onShowToast={showToast}
             />
-          </main>
-        )}
+          )}
 
-        {/* Route 7: MultiSender Tool */}
-        {(normalizedPath === '/multisender' || normalizedPath === '/tools/erc20/multisender') && (
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <MultiSender
-              selectedChain={selectedChain}
-              wallet={wallet}
+          {/* Route 2: Exact /generate/ Hub Page */}
+          {normalizedPath === '/generate' && (
+            <GenerateHub
+              onNavigate={navigate}
               onShowToast={showToast}
             />
-          </main>
-        )}
+          )}
 
-        {/* Route 8: Solidity Studio */}
-        {normalizedPath === '/studio' && (
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <ContractStudio
-              solidityCode={studioCode}
-              onShowToast={showToast}
-            />
-          </main>
-        )}
-
-        {/* Route 9: Protocol Owner / Platform Fee Vault Dashboard */}
-        {(normalizedPath === '/owner' || normalizedPath === '/platform-fee') && (
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <ProtocolOwner
+          {/* Route 3: Exact /generate/erc20-token/ Page */}
+          {normalizedPath === '/generate/erc20-token' && (
+            <ERC20TokenCreator
+              onNavigate={navigate}
               selectedChain={selectedChain}
+              setSelectedChain={setSelectedChain}
               wallet={wallet}
+              setWallet={setWallet}
               sandboxMode={sandboxMode}
+              setSandboxMode={setSandboxMode}
+              onShowToast={showToast}
+              onTokenDeployed={(token) => {
+                navigate('/dashboard/');
+              }}
+              onViewCode={(code) => {
+                setStudioCode(code);
+                navigate('/studio');
+              }}
+            />
+          )}
+
+          {/* Route 4: Exact /generate/spl-token/ Page (Solana) */}
+          {normalizedPath === '/generate/spl-token' && (
+            <SolanaForge
+              onNavigate={navigate}
+              wallet={wallet}
               onShowToast={showToast}
             />
-          </main>
-        )}
+          )}
 
+          {/* Route 5: Exact /generate/sui-token/ Page (Sui) */}
+          {normalizedPath === '/generate/sui-token' && (
+            <SuiForge
+              onNavigate={navigate}
+              wallet={wallet}
+              onShowToast={showToast}
+            />
+          )}
+
+          {/* Route 6: Dashboard */}
+          {normalizedPath === '/dashboard' && (
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <TokenDashboard
+                wallet={wallet}
+                selectedChain={selectedChain}
+                onShowToast={showToast}
+              />
+            </main>
+          )}
+
+          {/* Route 7: MultiSender Tool */}
+          {(normalizedPath === '/multisender' || normalizedPath === '/tools/erc20/multisender') && (
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <MultiSender
+                selectedChain={selectedChain}
+                wallet={wallet}
+                onShowToast={showToast}
+              />
+            </main>
+          )}
+
+          {/* Route 8: Solidity Studio */}
+          {normalizedPath === '/studio' && (
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <ContractStudio
+                solidityCode={studioCode}
+                onShowToast={showToast}
+              />
+            </main>
+          )}
+
+          {/* Route 9: Protocol Owner / Platform Fee Vault Dashboard */}
+          {(normalizedPath === '/owner' || normalizedPath === '/platform-fee') && (
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <ProtocolOwner
+                selectedChain={selectedChain}
+                wallet={wallet}
+                sandboxMode={sandboxMode}
+                onShowToast={showToast}
+              />
+            </main>
+          )}
+        </ErrorBoundary>
       </div>
 
     </div>

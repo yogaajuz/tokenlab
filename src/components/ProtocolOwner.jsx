@@ -30,13 +30,21 @@ import {
 import { ethers } from 'ethers';
 
 export default function ProtocolOwner({
-  selectedChain,
-  wallet,
-  sandboxMode,
-  onShowToast
+  selectedChain = {},
+  wallet = {},
+  sandboxMode = false,
+  onShowToast = () => {}
 }) {
+  const currentChain = selectedChain || {
+    id: 'ethereum',
+    name: 'Ethereum',
+    symbol: 'ETH',
+    chainId: 1,
+    explorer: 'https://etherscan.io'
+  };
+
   const [registryData, setRegistryData] = useState(() => 
-    getActiveRegistryForChain(selectedChain.chainId, wallet.address)
+    getActiveRegistryForChain(currentChain?.chainId || 1, wallet?.address)
   );
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'redeploy' | 'tokens'
@@ -44,27 +52,29 @@ export default function ProtocolOwner({
   const [redeploying, setRedeploying] = useState(false);
 
   // Form states for owner actions
-  const [newFee, setNewFee] = useState(registryData.creationFee || '0.025');
+  const [newFee, setNewFee] = useState(registryData?.creationFee || '0.025');
   const [customWithdrawRecipient, setCustomWithdrawRecipient] = useState('');
   const [newOwnerAddress, setNewOwnerAddress] = useState('');
   const [exemptAddress, setExemptAddress] = useState('');
 
   // Redeploy wizard states
-  const [deployFee, setDeployFee] = useState(selectedChain.isTestnet ? '0' : '0.025');
-  const [deployOwner, setDeployOwner] = useState(wallet.address || '');
+  const [deployFee, setDeployFee] = useState(currentChain?.isTestnet ? '0' : '0.025');
+  const [deployOwner, setDeployOwner] = useState(wallet?.address || '');
 
   // Check if connected wallet is owner
-  const isOwner = wallet.connected && (
-    wallet.address.toLowerCase() === (registryData.owner || '').toLowerCase()
-  );
+  const isOwner = Boolean(wallet?.connected && wallet?.address && (
+    wallet.address.toLowerCase() === (registryData?.owner || '').toLowerCase()
+  ));
 
   // Sync when selected chain changes
   useEffect(() => {
-    const data = getActiveRegistryForChain(selectedChain.chainId, wallet.address);
+    const chainId = currentChain?.chainId || 1;
+    const data = getActiveRegistryForChain(chainId, wallet?.address);
     setRegistryData(data);
-    setNewFee(data.creationFee || '0.025');
-    setDeployOwner(wallet.address || '');
-  }, [selectedChain, wallet.address]);
+    setNewFee(data?.creationFee || '0.025');
+    setDeployOwner(wallet?.address || '');
+  }, [currentChain?.chainId, wallet?.address]);
+
 
   const copyToClipboard = (text, label) => {
     navigator.clipboard.writeText(text);
@@ -98,7 +108,7 @@ export default function ProtocolOwner({
 
     setWithdrawing(true);
     try {
-      if (sandboxMode || wallet.isSimulated) {
+      if (sandboxMode || wallet?.isSimulated) {
         // Simulated execution
         await new Promise(r => setTimeout(r, 1200));
         const updated = {
@@ -106,12 +116,15 @@ export default function ProtocolOwner({
           vaultBalance: '0.000'
         };
         setRegistryData(updated);
-        saveCustomRegistryRecord(selectedChain.chainId, updated);
+        saveCustomRegistryRecord(currentChain?.chainId || 1, updated);
+
+        const safeOwner = wallet?.address || registryData?.owner || 'owner';
+        const displayOwner = safeOwner.length > 10 ? `${safeOwner.slice(0, 6)}...${safeOwner.slice(-4)}` : safeOwner;
 
         onShowToast({
           type: 'success',
           title: 'Withdrawal Successful!',
-          message: `Successfully withdrew ${currentBalance} ${selectedChain.symbol} to owner wallet (${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)})`
+          message: `Successfully withdrew ${currentBalance} ${currentChain?.symbol || 'ETH'} to owner wallet (${displayOwner})`
         });
       } else {
         // Live Web3 execution with injected MetaMask
@@ -139,12 +152,12 @@ export default function ProtocolOwner({
           vaultBalance: '0.000'
         };
         setRegistryData(updated);
-        saveCustomRegistryRecord(selectedChain.chainId, updated);
+        saveCustomRegistryRecord(currentChain?.chainId || 1, updated);
 
         onShowToast({
           type: 'success',
           title: 'Withdrawal Confirmed!',
-          message: `Withdrew ${currentBalance} ${selectedChain.symbol} directly to your wallet!`
+          message: `Withdrew ${currentBalance} ${currentChain?.symbol || 'ETH'} directly to your wallet!`
         });
       }
     } catch (err) {
@@ -181,17 +194,17 @@ export default function ProtocolOwner({
     }
 
     try {
-      if (sandboxMode || wallet.isSimulated) {
+      if (sandboxMode || wallet?.isSimulated) {
         const updated = {
           ...registryData,
           creationFee: newFee
         };
         setRegistryData(updated);
-        saveCustomRegistryRecord(selectedChain.chainId, updated);
+        saveCustomRegistryRecord(currentChain?.chainId || 1, updated);
         onShowToast({
           type: 'success',
           title: 'Creation Fee Updated',
-          message: `Platform fee set to ${newFee} ${selectedChain.symbol} per token deployment.`
+          message: `Platform fee set to ${newFee} ${currentChain?.symbol || 'ETH'} per token deployment.`
         });
       } else {
         if (!window.ethereum) throw new Error('No Web3 wallet detected.');
@@ -200,7 +213,7 @@ export default function ProtocolOwner({
 
         const TokenRegistryArtifact = (await import('../contracts/TokenRegistry.json')).default;
         const registryContract = new ethers.Contract(
-          registryData.address,
+          registryData?.address,
           TokenRegistryArtifact.abi,
           signer
         );
@@ -213,12 +226,12 @@ export default function ProtocolOwner({
           creationFee: newFee
         };
         setRegistryData(updated);
-        saveCustomRegistryRecord(selectedChain.chainId, updated);
+        saveCustomRegistryRecord(currentChain?.chainId || 1, updated);
 
         onShowToast({
           type: 'success',
           title: 'Creation Fee Confirmed',
-          message: `On-chain fee updated to ${newFee} ${selectedChain.symbol}.`
+          message: `On-chain fee updated to ${newFee} ${currentChain?.symbol || 'ETH'}.`
         });
       }
     } catch (err) {
@@ -232,7 +245,7 @@ export default function ProtocolOwner({
 
   // Deploy / Redeploy new registry with user as owner
   const handleDeployNewRegistry = async () => {
-    if (!wallet.connected) {
+    if (!wallet?.connected) {
       onShowToast({
         type: 'error',
         title: 'Wallet Not Connected',
@@ -243,12 +256,12 @@ export default function ProtocolOwner({
 
     setRedeploying(true);
     try {
-      const ownerTarget = deployOwner.trim() || wallet.address;
+      const ownerTarget = deployOwner?.trim() || wallet?.address || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8';
       if (!ethers.isAddress(ownerTarget)) {
         throw new Error('Invalid Ethereum owner address provided.');
       }
 
-      if (sandboxMode || wallet.isSimulated) {
+      if (sandboxMode || wallet?.isSimulated) {
         // Fast simulator
         await new Promise(r => setTimeout(r, 1600));
         const chars = '0123456789abcdef';
@@ -266,7 +279,7 @@ export default function ProtocolOwner({
           deployedAt: new Date().toISOString()
         };
 
-        saveCustomRegistryRecord(selectedChain.chainId, record);
+        saveCustomRegistryRecord(currentChain?.chainId || 1, record);
         setRegistryData(record);
 
         onShowToast({
@@ -321,7 +334,7 @@ export default function ProtocolOwner({
           <div className="space-y-3">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-serif font-semibold">
               <Crown className="w-3.5 h-3.5 text-amber-400" />
-              <span>20LAB Architecture — Protocol Master Registry</span>
+              <span>RobinPump Architecture — Protocol Master Registry</span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl font-extrabold font-serif tracking-tight text-white">
@@ -329,7 +342,7 @@ export default function ProtocolOwner({
             </h1>
 
             <p className="text-sm font-serif text-slate-300 max-w-2xl leading-relaxed">
-              You are interacting with the redeployed <strong>uRegistryV5</strong> smart contract on <strong>{selectedChain.name}</strong>. 
+              You are interacting with the deployed <strong>uRegistryV5</strong> smart contract on <strong>{currentChain?.name || 'Ethereum'}</strong>. 
               As the protocol owner, 100% of all token generation fees paid by users accumulate in your contract vault, ready for one-click withdrawal to your wallet.
             </p>
           </div>
@@ -354,9 +367,9 @@ export default function ProtocolOwner({
             <div className="flex items-center justify-between space-x-4">
               <span className="text-slate-400">Registry Address:</span>
               <div className="flex items-center space-x-1 font-mono text-cyan-300">
-                <span>{registryData.address.slice(0, 6)}...{registryData.address.slice(-4)}</span>
+                <span>{(registryData?.address || '').slice(0, 6)}...{(registryData?.address || '').slice(-4)}</span>
                 <button 
-                  onClick={() => copyToClipboard(registryData.address, 'Registry Address')}
+                  onClick={() => copyToClipboard(registryData?.address || '', 'Registry Address')}
                   className="hover:text-white"
                 >
                   <Copy className="w-3 h-3" />
@@ -364,13 +377,13 @@ export default function ProtocolOwner({
               </div>
             </div>
 
-            {registryData.factoryAddress && (
+            {registryData?.factoryAddress && (
               <div className="flex items-center justify-between space-x-4">
                 <span className="text-slate-400">Factory Address:</span>
                 <div className="flex items-center space-x-1 font-mono text-[#07e3f8]">
-                  <span>{registryData.factoryAddress.slice(0, 6)}...{registryData.factoryAddress.slice(-4)}</span>
+                  <span>{(registryData?.factoryAddress || '').slice(0, 6)}...{(registryData?.factoryAddress || '').slice(-4)}</span>
                   <button 
-                    onClick={() => copyToClipboard(registryData.factoryAddress, 'Factory Address')}
+                    onClick={() => copyToClipboard(registryData?.factoryAddress || '', 'Factory Address')}
                     className="hover:text-white"
                   >
                     <Copy className="w-3 h-3" />
@@ -382,9 +395,9 @@ export default function ProtocolOwner({
             <div className="flex items-center justify-between space-x-4">
               <span className="text-slate-400">Contract Owner:</span>
               <div className="flex items-center space-x-1 font-mono text-slate-300">
-                <span>{(registryData.owner || '').slice(0, 6)}...{(registryData.owner || '').slice(-4)}</span>
+                <span>{(registryData?.owner || '').slice(0, 6)}...{(registryData?.owner || '').slice(-4)}</span>
                 <button 
-                  onClick={() => copyToClipboard(registryData.owner, 'Owner Address')}
+                  onClick={() => copyToClipboard(registryData?.owner || '', 'Owner Address')}
                   className="hover:text-white"
                 >
                   <Copy className="w-3 h-3" />
@@ -447,7 +460,7 @@ export default function ProtocolOwner({
                 <Coins className="w-4 h-4 text-[#07E3F8]" />
               </div>
               <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
-                {registryData.vaultBalance} <span className="text-sm font-serif text-cyan-400">{selectedChain.symbol}</span>
+                {registryData?.vaultBalance || '0.000'} <span className="text-sm font-serif text-cyan-400">{currentChain?.symbol || 'ETH'}</span>
               </div>
               <div className="text-[11px] font-serif text-emerald-400 mt-1 flex items-center space-x-1">
                 <CheckCircle2 className="w-3 h-3" />
@@ -457,7 +470,7 @@ export default function ProtocolOwner({
               {/* Big Glow Button */}
               <button
                 onClick={handleWithdrawAll}
-                disabled={withdrawing || !isOwner || parseFloat(registryData.vaultBalance || '0') <= 0}
+                disabled={withdrawing || !isOwner || parseFloat(registryData?.vaultBalance || '0') <= 0}
                 className="mt-4 w-full py-2.5 px-3 rounded-xl bg-linear-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-black font-serif font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center space-x-1.5 disabled:opacity-40 disabled:pointer-events-none active:scale-98"
               >
                 {withdrawing ? (
@@ -478,7 +491,7 @@ export default function ProtocolOwner({
                 <DollarSign className="w-4 h-4 text-amber-400" />
               </div>
               <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
-                {registryData.creationFee} <span className="text-sm font-serif text-slate-400">{selectedChain.symbol}</span>
+                {registryData?.creationFee || '0.025'} <span className="text-sm font-serif text-slate-400">{currentChain?.symbol || 'ETH'}</span>
               </div>
               <div className="text-[11px] font-serif text-slate-400">
                 Per token deployment transaction
@@ -492,7 +505,7 @@ export default function ProtocolOwner({
                 <Layers className="w-4 h-4 text-purple-400" />
               </div>
               <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
-                {registryData.totalTokens}
+                {registryData?.totalTokens || 0}
               </div>
               <div className="text-[11px] font-serif text-slate-400">
                 Processed via uRegistryV5
@@ -506,7 +519,7 @@ export default function ProtocolOwner({
                 <Sparkles className="w-4 h-4 text-cyan-400" />
               </div>
               <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
-                {registryData.totalRevenue} <span className="text-sm font-serif text-slate-400">{selectedChain.symbol}</span>
+                {registryData?.totalRevenue || '0.000'} <span className="text-sm font-serif text-slate-400">{currentChain?.symbol || 'ETH'}</span>
               </div>
               <div className="text-[11px] font-serif text-emerald-400">
                 100% allocated to contract owner
@@ -530,7 +543,7 @@ export default function ProtocolOwner({
               </p>
 
               <div className="space-y-3 font-serif">
-                <label className="text-xs text-slate-300 font-medium">New Creation Fee ({selectedChain.symbol}):</label>
+                <label className="text-xs text-slate-300 font-medium">New Creation Fee ({currentChain?.symbol || 'ETH'}):</label>
                 <div className="flex items-center space-x-3">
                   <input
                     type="number"
@@ -579,7 +592,7 @@ export default function ProtocolOwner({
                       onShowToast({
                         type: 'info',
                         title: 'Ownership Transfer Initiated',
-                        message: `Proposed owner ${newOwnerAddress.slice(0, 8)}... must call acceptOwnership() to finalize.`
+                        message: `Proposed owner ${newOwnerAddress ? `${newOwnerAddress.slice(0, 8)}...` : ''} must call acceptOwnership() to finalize.`
                       });
                     }}
                     disabled={!isOwner || !newOwnerAddress}
@@ -615,7 +628,9 @@ export default function ProtocolOwner({
               <div className="p-3.5 rounded-xl bg-black/30 border border-slate-800/80 space-y-1">
                 <span className="text-slate-400">Withdrawal Protection:</span>
                 <p className="font-mono text-emerald-400 text-[11px]">onlyOwner Restricted</p>
-                <p className="text-[10px] text-slate-500">Only the deployer ({wallet.address.slice(0, 6)}...) can call withdraw().</p>
+                <p className="text-[10px] text-slate-500">
+                  Only the deployer ({(wallet?.address || registryData?.owner || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8').slice(0, 6)}...{(wallet?.address || registryData?.owner || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8').slice(-4)}) can call withdraw().
+                </p>
               </div>
 
               <div className="p-3.5 rounded-xl bg-black/30 border border-slate-800/80 space-y-1">
@@ -637,7 +652,7 @@ export default function ProtocolOwner({
               <span>Redeploy Protocol Contract with YOU as Owner</span>
             </h2>
             <p className="text-xs font-serif text-slate-300 leading-relaxed">
-              Deploy a fresh instance of the <strong>TokenRegistry</strong> and <strong>TokenFactory</strong> contracts directly to <strong>{selectedChain.name}</strong>. 
+              Deploy a fresh instance of the <strong>TokenRegistry</strong> and <strong>TokenFactory</strong> contracts directly to <strong>{currentChain?.name || 'Ethereum'}</strong>. 
               The contract constructor assigns YOUR connected wallet as the immutable owner.
             </p>
           </div>
@@ -648,8 +663,8 @@ export default function ProtocolOwner({
               <div className="space-y-1.5">
                 <label className="text-slate-300 font-semibold">Target Blockchain:</label>
                 <div className="p-3 rounded-xl bg-black/40 border border-slate-700 text-white font-medium flex items-center justify-between">
-                  <span>{selectedChain.name}</span>
-                  <span className="text-[10px] font-mono text-cyan-400">Chain ID: {selectedChain.chainId}</span>
+                  <span>{currentChain?.name || 'Ethereum'}</span>
+                  <span className="text-[10px] font-mono text-cyan-400">Chain ID: {currentChain?.chainId || 1}</span>
                 </div>
               </div>
 
@@ -666,7 +681,7 @@ export default function ProtocolOwner({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-slate-300 font-semibold">Initial Token Creation Fee ({selectedChain.symbol}):</label>
+                <label className="text-slate-300 font-semibold">Initial Token Creation Fee ({currentChain?.symbol || 'ETH'}):</label>
                 <input
                   type="number"
                   step="0.001"
@@ -724,7 +739,7 @@ export default function ProtocolOwner({
         <div className="p-6 rounded-3xl bg-[#0b2034] border border-slate-800 space-y-4 font-serif">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-white">Registered Tokens on This Registry</h3>
-            <span className="text-xs text-slate-400">Total: {registryData.totalTokens} Tokens</span>
+            <span className="text-xs text-slate-400">Total: {registryData?.totalTokens || 0} Tokens</span>
           </div>
 
           <div className="overflow-x-auto">
@@ -745,10 +760,10 @@ export default function ProtocolOwner({
                   <td className="py-3 px-3 text-cyan-300">0x3B6a8b1C...DeF72D0B</td>
                   <td className="py-3 px-3">1,000,000,000</td>
                   <td className="py-3 px-3 text-slate-400">0x71C836...80f146</td>
-                  <td className="py-3 px-3 text-emerald-400">0.025 {selectedChain.symbol}</td>
+                  <td className="py-3 px-3 text-emerald-400">0.025 {currentChain?.symbol || 'ETH'}</td>
                   <td className="py-3 px-3 text-right">
                     <a 
-                      href={`${selectedChain.explorer}/address/0x3B6a8b1C2eE2675d0458114fEab86Ec0DeF72D0B`} 
+                      href={`${currentChain?.explorer || 'https://etherscan.io'}/address/0x3B6a8b1C2eE2675d0458114fEab86Ec0DeF72D0B`} 
                       target="_blank" 
                       rel="noreferrer"
                       className="text-cyan-400 hover:text-white inline-flex items-center space-x-1"
@@ -764,10 +779,10 @@ export default function ProtocolOwner({
                   <td className="py-3 px-3 text-cyan-300">0x7a250d56...59F2488D</td>
                   <td className="py-3 px-3">500,000,000</td>
                   <td className="py-3 px-3 text-slate-400">0x71C836...80f146</td>
-                  <td className="py-3 px-3 text-emerald-400">0.025 {selectedChain.symbol}</td>
+                  <td className="py-3 px-3 text-emerald-400">0.025 {currentChain?.symbol || 'ETH'}</td>
                   <td className="py-3 px-3 text-right">
                     <a 
-                      href={`${selectedChain.explorer}/address/0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D`} 
+                      href={`${currentChain?.explorer || 'https://etherscan.io'}/address/0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D`} 
                       target="_blank" 
                       rel="noreferrer"
                       className="text-cyan-400 hover:text-white inline-flex items-center space-x-1"
