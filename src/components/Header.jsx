@@ -9,12 +9,10 @@ import {
   X, 
   LogOut, 
   Copy, 
-  Crown,
   Sparkles
 } from 'lucide-react';
 import { ethers } from 'ethers';
 import { SUPPORTED_CHAINS } from '../utils/chains';
-import PlatformFeeModal from './PlatformFeeModal';
 
 export default function Header({
   currentPath = '/',
@@ -31,7 +29,6 @@ export default function Header({
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [platformFeeModalOpen, setPlatformFeeModalOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState('en');
 
   const languages = [
@@ -357,17 +354,6 @@ export default function Header({
                 </div>
               </div>
 
-              {/* Platform Fee Key & Revenue Button */}
-              <button
-                type="button"
-                onClick={() => setPlatformFeeModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-serif font-bold text-amber-300 hover:text-amber-200 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all shadow-sm"
-                title="Configure Platform Fee & Revenue Wallet"
-              >
-                <Crown size={14} className="text-amber-400" />
-                <span>Platform Fee</span>
-              </button>
-
               {/* Network Selector Pill (Always Visible for Mainnet / Testnet switching) */}
               <div className="relative">
                 <button
@@ -465,21 +451,6 @@ export default function Header({
                       <div className="text-sm font-bold text-white mb-3 font-mono">
                         {wallet.balance || `0.0000 ${selectedChain?.symbol || 'ETH'}`}
                       </div>
-
-                      {/* Quick Platform Fee Option */}
-                      <button
-                        onClick={() => {
-                          setWalletMenuOpen(false);
-                          setPlatformFeeModalOpen(true);
-                        }}
-                        className="w-full flex items-center justify-between py-2 px-2 text-xs text-amber-300 hover:text-amber-200 bg-amber-400/10 hover:bg-amber-400/20 rounded transition-colors cursor-pointer mb-2 font-bold"
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <Crown size={14} className="text-amber-400" />
-                          <span>Platform Fee Vault</span>
-                        </div>
-                        <span className="text-[10px] text-amber-400">Manage</span>
-                      </button>
 
                       <button
                         onClick={disconnectWallet}
@@ -672,17 +643,6 @@ export default function Header({
                 </div>
               </div>
 
-              {/* Platform Fee Key & Revenue Button */}
-              <button
-                type="button"
-                onClick={() => setPlatformFeeModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-serif font-bold text-amber-300 hover:text-amber-200 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all shadow-sm"
-                title="Configure Platform Fee & Revenue Wallet"
-              >
-                <Crown size={14} className="text-amber-400" />
-                <span>Platform Fee</span>
-              </button>
-
               {/* Open App CTA button */}
               <button 
                 className="inline-flex items-center justify-center font-bold font-serif whitespace-nowrap rounded-lg ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 gap-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:brightness-75 disabled:border-black/20 bg-linear-to-r from-primary to-primary-alt text-primary-foreground hover:opacity-90 h-12 md:px-10 py-2 text-base px-2 sm:px-10 lg:px-6 xl:px-10 cursor-pointer shadow-lg shadow-[#07e3f8]/20" 
@@ -801,17 +761,6 @@ export default function Header({
                 >
                   Tools
                 </a>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setPlatformFeeModalOpen(true);
-                  }}
-                  className="w-full text-left py-2 text-amber-300 font-bold flex items-center gap-2"
-                >
-                  <Crown size={16} />
-                  <span>Platform Fee Settings</span>
-                </button>
               </>
             ) : (
               <>
@@ -905,31 +854,11 @@ export default function Header({
                 >
                   Reviews &amp; FAQ
                 </a>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setPlatformFeeModalOpen(true);
-                  }}
-                  className="w-full text-left py-2 text-amber-300 font-bold flex items-center gap-2"
-                >
-                  <Crown size={16} />
-                  <span>Platform Fee Settings</span>
-                </button>
               </>
             )}
           </div>
         )}
       </div>
-
-      {/* Platform Fee Modal */}
-      <PlatformFeeModal
-        isOpen={platformFeeModalOpen}
-        onClose={() => setPlatformFeeModalOpen(false)}
-        wallet={wallet}
-        selectedChain={selectedChain}
-        onShowToast={onShowToast}
-      />
     </div>
   );
 }
