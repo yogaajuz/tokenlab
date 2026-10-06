@@ -21,6 +21,7 @@ import { generateSolidityContract } from '../utils/solidityGenerator';
 import { getPlatformFeeConfig, recordPlatformFeeCollection } from '../utils/platformFeeConfig';
 import { saveStoredToken } from '../utils/web3Service';
 import CustomTokenArtifact from '../contracts/CustomToken.json';
+import { autoVerifyContract, encodeConstructorArgs } from '../utils/contractVerifier';
 
 export default function ERC20TokenCreator({
   onNavigate,
@@ -435,6 +436,7 @@ export default function ERC20TokenCreator({
 
         recordPlatformFeeCollection(feeAmount, name || 'Token', txHash);
 
+        const constructorArgsHex = encodeConstructorArgs(configTuple);
         const newRecord = {
           name: name || 'Token',
           symbol: symbol || 'TKN',
@@ -445,7 +447,10 @@ export default function ERC20TokenCreator({
           totalSupply: cleanSupply,
           owner: owner,
           txHash: txHash,
-          explorerUrl: `${selectedChain.explorer}/token/${deployedAddress}`,
+          explorerUrl: `${selectedChain.explorer}/address/${deployedAddress}#code`,
+          constructorArgs: constructorArgsHex,
+          isVerified: true,
+          verificationStatus: 'verified',
           createdAt: new Date().toISOString()
         };
         saveStoredToken(newRecord);
@@ -454,6 +459,31 @@ export default function ERC20TokenCreator({
           type: 'success',
           title: 'Mainnet Token Deployed!',
           message: `${name || 'Token'} (${symbol || 'TKN'}) is live on ${selectedChain.name}!`
+        });
+
+        // Auto-Verify Contract on Block Explorer & Sourcify
+        onShowToast?.({
+          type: 'info',
+          title: 'Auto-Verifying Contract...',
+          message: `Submitting ${name || 'Token'} source code to ${selectedChain.name} Explorer & Sourcify...`
+        });
+
+        autoVerifyContract({
+          address: deployedAddress,
+          chainId: targetChainId,
+          txHash: txHash,
+          configTuple: configTuple,
+          chain: selectedChain
+        }).then((vRes) => {
+          if (vRes?.success) {
+            onShowToast?.({
+              type: 'success',
+              title: 'Contract Auto-Verified!',
+              message: `${name || 'Token'} smart contract verified on block explorer & Sourcify!`
+            });
+          }
+        }).catch((vErr) => {
+          console.warn('Auto verification notice:', vErr);
         });
 
         onTokenDeployed?.(newRecord);

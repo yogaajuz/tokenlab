@@ -32,6 +32,8 @@ export const INITIAL_DEMO_TOKENS = [
       cooldownSeconds: 30
     },
     isPaused: false,
+    isVerified: true,
+    verificationStatus: 'verified',
     blacklistedAddresses: ['0x1111111254fb6c44bac0bed2854e76f90643097d'],
     createdAt: new Date(Date.now() - 3600000 * 24).toISOString()
   },
@@ -64,6 +66,8 @@ export const INITIAL_DEMO_TOKENS = [
       cooldownSeconds: 0
     },
     isPaused: false,
+    isVerified: true,
+    verificationStatus: 'verified',
     blacklistedAddresses: [],
     createdAt: new Date(Date.now() - 3600000 * 5).toISOString()
   }
