@@ -11,7 +11,7 @@ import ContractStudio from './components/ContractStudio';
 import ProtocolOwner from './components/ProtocolOwner';
 import ErrorBoundary from './components/ErrorBoundary';
 import Toast from './components/Toast';
-import { DEFAULT_CHAIN } from './utils/chains';
+import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from './utils/chains';
 import { generateSolidityContract } from './utils/solidityGenerator';
 
 export default function App() {
@@ -20,8 +20,16 @@ export default function App() {
     return window.location.pathname || '/';
   });
 
-  const [selectedChain, setSelectedChain] = useState(DEFAULT_CHAIN);
-  const [sandboxMode, setSandboxMode] = useState(true);
+  const [selectedChain, setSelectedChain] = useState(() => {
+    const path = window.location.pathname || '';
+    const match = path.match(/\/generate\/erc20-token\/([a-z0-9-]+)/i);
+    if (match && match[1]) {
+      const found = SUPPORTED_CHAINS.find(c => c.id.toLowerCase() === match[1].toLowerCase());
+      if (found) return found;
+    }
+    return DEFAULT_CHAIN;
+  });
+  const [sandboxMode, setSandboxMode] = useState(false);
   const [wallet, setWallet] = useState({
     connected: false,
     address: null,
@@ -34,7 +42,13 @@ export default function App() {
   // Browser navigation sync
   useEffect(() => {
     const handlePopState = () => {
-      setCurrentPath(window.location.pathname || '/');
+      const newPath = window.location.pathname || '/';
+      setCurrentPath(newPath);
+      const match = newPath.match(/\/generate\/erc20-token\/([a-z0-9-]+)/i);
+      if (match && match[1]) {
+        const found = SUPPORTED_CHAINS.find(c => c.id.toLowerCase() === match[1].toLowerCase());
+        if (found) setSelectedChain(found);
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -43,6 +57,11 @@ export default function App() {
   const navigate = (path) => {
     window.history.pushState({}, '', path);
     setCurrentPath(path);
+    const match = path.match(/\/generate\/erc20-token\/([a-z0-9-]+)/i);
+    if (match && match[1]) {
+      const found = SUPPORTED_CHAINS.find(c => c.id.toLowerCase() === match[1].toLowerCase());
+      if (found) setSelectedChain(found);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -100,7 +119,7 @@ export default function App() {
           )}
 
           {/* Route 3: Exact /generate/erc20-token/ Page */}
-          {normalizedPath === '/generate/erc20-token' && (
+          {normalizedPath.startsWith('/generate/erc20-token') && (
             <ERC20TokenCreator
               onNavigate={navigate}
               selectedChain={selectedChain}

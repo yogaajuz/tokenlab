@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ChevronDown, 
   Wallet, 
-  ExternalLink,
-  Check,
-  Globe,
-  Menu,
-  X,
-  LogOut,
-  Copy,
-  Crown
+  ExternalLink, 
+  Check, 
+  Globe, 
+  Menu, 
+  X, 
+  LogOut, 
+  Copy, 
+  Crown,
+  Sparkles
 } from 'lucide-react';
+import { ethers } from 'ethers';
 import { SUPPORTED_CHAINS } from '../utils/chains';
 import PlatformFeeModal from './PlatformFeeModal';
 
@@ -40,59 +42,200 @@ export default function Header({
     { code: 'zh', label: '中文', flag: '/flags/en.svg' }
   ];
 
-  const connectWallet = async () => {
-    if (sandboxMode) {
-      setWallet({
-        connected: true,
-        address: '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8',
-        balance: '4.850 ' + (selectedChain?.symbol || 'ETH'),
-        isSimulated: true
-      });
-      onShowToast?.({
-        type: 'success',
-        title: 'Demo Wallet Connected',
-        message: 'Connected to Sandbox funded with 4.85 ' + (selectedChain?.symbol || 'ETH')
-      });
-      return;
-    }
+  // Sync Web3 provider events (network changes, account changes)
+  useEffect(() => {
+    if (typeof window.ethereum === 'undefined') return;
 
+    const handleAccountsChanged = async (accounts) => {
+      if (accounts.length === 0) {
+        disconnectWallet();
+      } else if (wallet?.connected && !wallet?.isSimulated) {
+        try {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const balWei = await provider.getBalance(accounts[0]);
+          const balFmt = parseFloat(ethers.formatEther(balWei)).toFixed(4);
+          setWallet(prev => ({
+            ...prev,
+            address: accounts[0],
+            balance: `${balFmt} ${selectedChain?.symbol || 'ETH'}`
+          }));
+        } catch (e) {
+          setWallet(prev => ({ ...prev, address: accounts[0] }));
+        }
+      }
+    };
+
+    const handleChainChanged = (hexChainId) => {
+      const numChainId = parseInt(hexChainId, 16);
+      const matched = SUPPORTED_CHAINS.find(c => c.chainId === numChainId);
+      if (matched) {
+        setSelectedChain(matched);
+        onShowToast?.({
+          type: 'info',
+          title: 'Network Synced',
+          message: `Active network updated to ${matched.name} (${matched.isTestnet ? 'Testnet' : 'Mainnet'})`
+        });
+      }
+    };
+
+    window.ethereum.on?.('accountsChanged', handleAccountsChanged);
+    window.ethereum.on?.('chainChanged', handleChainChanged);
+
+    return () => {
+      window.ethereum?.removeListener?.('accountsChanged', handleAccountsChanged);
+      window.ethereum?.removeListener?.('chainChanged', handleChainChanged);
+    };
+  }, [wallet?.connected, wallet?.isSimulated, selectedChain]);
+
+  // Network Switcher: updates UI and requests MetaMask to switch network
+  const switchChain = async (targetChain) => {
+    setSelectedChain(targetChain);
+    setChainMenuOpen(false);
+
+    if (typeof window.ethereum !== 'undefined' && wallet?.connected && !wallet?.isSimulated) {
+      const hexChainId = '0x' + targetChain.chainId.toString(16);
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: hexChainId }]
+        });
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const balWei = await provider.getBalance(wallet.address);
+        const balFmt = parseFloat(ethers.formatEther(balWei)).toFixed(4);
+        setWallet(prev => ({
+          ...prev,
+          balance: `${balFmt} ${targetChain.symbol}`
+        }));
+
+        onShowToast?.({
+          type: 'success',
+          title: 'Network Switched',
+          message: `Switched wallet to ${targetChain.name} (${targetChain.symbol})`
+        });
+      } catch (switchErr) {
+        if (switchErr.code === 4902 || switchErr.message?.includes('Unrecognized')) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: hexChainId,
+                chainName: targetChain.name,
+                nativeCurrency: {
+                  name: targetChain.symbol || 'ETH',
+                  symbol: targetChain.symbol || 'ETH',
+                  decimals: 18
+                },
+                rpcUrls: [targetChain.rpcUrl],
+                blockExplorerUrls: [targetChain.explorer]
+              }]
+            });
+            onShowToast?.({
+              type: 'success',
+              title: 'Network Added',
+              message: `Added and connected to ${targetChain.name}`
+            });
+          } catch (addErr) {
+            console.error('Failed to add chain:', addErr);
+          }
+        }
+      }
+    } else {
+      onShowToast?.({
+        type: 'info',
+        title: 'Network Selected',
+        message: `Selected ${targetChain.name} (${targetChain.isTestnet ? 'Testnet' : 'Mainnet'})`
+      });
+    }
+  };
+
+  const connectWallet = async () => {
+    // 1. Connect Real Web3 Wallet (MetaMask, Rabby, Coinbase, Phantom, etc.)
     if (typeof window.ethereum !== 'undefined') {
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (accounts.length > 0) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await provider.send('eth_requestAccounts', []);
+        if (accounts && accounts.length > 0) {
+          const network = await provider.getNetwork();
+          const currentNetworkId = Number(network.chainId);
+          const targetChainId = Number(selectedChain?.chainId || 1);
+
+          // Prompt switch if network does not match selected chain
+          if (currentNetworkId !== targetChainId) {
+            try {
+              await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0x' + targetChainId.toString(16) }]
+              });
+            } catch (swErr) {
+              if (swErr.code === 4902 || swErr.message?.includes('Unrecognized')) {
+                await window.ethereum.request({
+                  method: 'wallet_addEthereumChain',
+                  params: [{
+                    chainId: '0x' + targetChainId.toString(16),
+                    chainName: selectedChain.name,
+                    nativeCurrency: {
+                      name: selectedChain.symbol || 'ETH',
+                      symbol: selectedChain.symbol || 'ETH',
+                      decimals: 18
+                    },
+                    rpcUrls: [selectedChain.rpcUrl],
+                    blockExplorerUrls: [selectedChain.explorer]
+                  }]
+                });
+              }
+            }
+          }
+
+          // Fetch real on-chain native balance
+          const updatedProvider = new ethers.BrowserProvider(window.ethereum);
+          let balFormatted = '0.0000';
+          try {
+            const bal = await updatedProvider.getBalance(accounts[0]);
+            balFormatted = parseFloat(ethers.formatEther(bal)).toFixed(4);
+          } catch (e) {
+            console.warn('Balance fetch error:', e);
+          }
+
+          setSandboxMode(false);
           setWallet({
             connected: true,
             address: accounts[0],
-            balance: '1.240 ' + (selectedChain?.symbol || 'ETH'),
+            balance: `${balFormatted} ${selectedChain?.symbol || 'ETH'}`,
             isSimulated: false
           });
+
           onShowToast?.({
             type: 'success',
-            title: 'MetaMask Connected',
-            message: `Connected account ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`
+            title: 'Live Web3 Wallet Connected',
+            message: `Connected ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)} on ${selectedChain?.name || 'Mainnet'}!`
           });
+          return;
         }
       } catch (err) {
+        console.error('Wallet connection error:', err);
         onShowToast?.({
           type: 'error',
-          title: 'Connection Failed',
+          title: 'Connection Rejected',
           message: err.message || 'User rejected Web3 connection request'
         });
+        return;
       }
-    } else {
-      setSandboxMode(true);
-      setWallet({
-        connected: true,
-        address: '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8',
-        balance: '4.850 ' + (selectedChain?.symbol || 'ETH'),
-        isSimulated: true
-      });
-      onShowToast?.({
-        type: 'info',
-        title: 'Web3 Demo Wallet Connected',
-        message: 'No browser Web3 extension found. Connected demo testnet wallet!'
-      });
     }
+
+    // 2. Demo fallback if no browser Web3 extension found
+    setSandboxMode(true);
+    setWallet({
+      connected: true,
+      address: '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8',
+      balance: '4.850 ' + (selectedChain?.symbol || 'ETH'),
+      isSimulated: true
+    });
+    onShowToast?.({
+      type: 'info',
+      title: 'Demo Wallet Mode',
+      message: 'No Web3 extension detected. Opened sandbox funded with test tokens.'
+    });
   };
 
   const disconnectWallet = () => {
@@ -225,115 +368,138 @@ export default function Header({
                 <span>Platform Fee</span>
               </button>
 
+              {/* Network Selector Pill (Always Visible for Mainnet / Testnet switching) */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setChainMenuOpen(!chainMenuOpen)}
+                  className="flex items-center gap-2 bg-[#1a3249] hover:bg-[#28445f] border border-[#44617d]/60 rounded-lg px-3 py-2 text-xs font-serif text-white cursor-pointer transition-colors shadow-sm"
+                  title="Switch Active Blockchain"
+                >
+                  <span className="text-sm">{selectedChain?.icon || '🔷'}</span>
+                  <span className="font-bold">{selectedChain?.name || 'Ethereum'}</span>
+                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold uppercase ${selectedChain?.isTestnet ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'}`}>
+                    {selectedChain?.isTestnet ? 'Testnet' : 'Mainnet'}
+                  </span>
+                  <ChevronDown size={14} className="text-slate-400" />
+                </button>
+
+                {chainMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-64 rounded-xl bg-[#142638] border border-[#44617d]/70 p-2 shadow-2xl z-50 max-h-96 overflow-y-auto">
+                    <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider px-2 py-1 flex items-center justify-between">
+                      <span>Live Mainnets</span>
+                      <span className="text-[10px] text-emerald-400/80 font-mono">100% Real Assets</span>
+                    </div>
+                    {SUPPORTED_CHAINS.filter(c => !c.isTestnet && !c.isSolana).map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => switchChain(c)}
+                        className={`flex items-center w-full gap-2 px-2.5 py-1.5 text-xs rounded-lg hover:bg-white/10 text-left transition-colors cursor-pointer ${
+                          selectedChain?.id === c.id ? 'bg-[#07e3f8]/20 text-[#07e3f8] font-bold border border-[#07e3f8]/30' : 'text-slate-200'
+                        }`}
+                      >
+                        <span className="text-sm">{c.icon}</span>
+                        <div className="flex-1 truncate">
+                          <div className="font-semibold">{c.name}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">Chain ID: {c.chainId} • {c.symbol}</div>
+                        </div>
+                        {selectedChain?.id === c.id && <Check size={14} className="text-[#07e3f8]" />}
+                      </button>
+                    ))}
+
+                    <div className="text-[11px] font-bold text-amber-400 uppercase tracking-wider px-2 py-1 mt-2 pt-2 border-t border-slate-700/60 flex items-center justify-between">
+                      <span>Testnets</span>
+                      <span className="text-[10px] text-slate-400 font-mono">Free Testing</span>
+                    </div>
+                    {SUPPORTED_CHAINS.filter(c => c.isTestnet && !c.isSolana).map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => switchChain(c)}
+                        className={`flex items-center w-full gap-2 px-2.5 py-1.5 text-xs rounded-lg hover:bg-white/10 text-left transition-colors cursor-pointer ${
+                          selectedChain?.id === c.id ? 'bg-[#07e3f8]/20 text-[#07e3f8] font-bold border border-[#07e3f8]/30' : 'text-slate-300'
+                        }`}
+                      >
+                        <span className="text-sm">{c.icon}</span>
+                        <div className="flex-1 truncate">
+                          <div className="font-semibold">{c.name}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">Chain ID: {c.chainId} • {c.symbol}</div>
+                        </div>
+                        {selectedChain?.id === c.id && <Check size={14} className="text-[#07e3f8]" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Connected Chain & Wallet Button */}
               {wallet?.connected ? (
-                <div className="flex items-center gap-2">
-                  {/* Selected Chain Badge */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setChainMenuOpen(!chainMenuOpen)}
-                      className="flex items-center gap-2 bg-[#1a3249] hover:bg-[#28445f] border border-[#44617d]/40 rounded-lg px-3 py-2 text-xs font-serif text-white cursor-pointer transition-colors"
-                    >
-                      {selectedChain?.icon ? (
-                        <img src={selectedChain.icon} alt={selectedChain.name} className="w-4 h-4 rounded-full" />
-                      ) : (
-                        <div className="w-3 h-3 rounded-full bg-[#07e3f8]"></div>
-                      )}
-                      <span>{selectedChain?.name || 'Ethereum'}</span>
-                      <ChevronDown size={14} className="text-slate-400" />
-                    </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setWalletMenuOpen(!walletMenuOpen)}
+                    className="inline-flex items-center justify-center font-bold font-serif whitespace-nowrap rounded-lg ring-offset-background transition-colors bg-linear-to-r from-primary to-primary-alt text-primary-foreground hover:opacity-90 h-10 px-4 text-xs cursor-pointer gap-2"
+                    id="connected_wallet_btn"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                    <span>{formatAddress(wallet.address)}</span>
+                    <ChevronDown size={14} />
+                  </button>
 
-                    {chainMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-56 rounded-lg bg-[#1a3249] border border-[#44617d]/60 p-2 shadow-2xl z-50 max-h-80 overflow-y-auto">
-                        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
-                          Select Network
-                        </div>
-                        {SUPPORTED_CHAINS.map(c => (
-                          <button
-                            key={c.id}
-                            onClick={() => {
-                              setSelectedChain(c);
-                              setChainMenuOpen(false);
-                            }}
-                            className={`flex items-center w-full gap-2 px-2 py-1.5 text-xs rounded hover:bg-white/10 text-left transition-colors cursor-pointer ${
-                              selectedChain?.id === c.id ? 'bg-[#07e3f8]/20 text-[#07e3f8] font-bold' : 'text-slate-300'
-                            }`}
-                          >
-                            <img src={c.icon} alt={c.name} className="w-4 h-4 rounded-full" />
-                            <span className="truncate flex-1">{c.name}</span>
-                            {selectedChain?.id === c.id && <Check size={12} />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Connected Address Button */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setWalletMenuOpen(!walletMenuOpen)}
-                      className="inline-flex items-center justify-center font-bold font-serif whitespace-nowrap rounded-lg ring-offset-background transition-colors bg-linear-to-r from-primary to-primary-alt text-primary-foreground hover:opacity-90 h-10 px-4 text-xs cursor-pointer gap-2"
-                      id="connected_wallet_btn"
-                    >
-                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                      <span>{formatAddress(wallet.address)}</span>
-                      <ChevronDown size={14} />
-                    </button>
-
-                    {walletMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-64 rounded-lg bg-[#1a3249] border border-[#44617d]/60 p-3 shadow-2xl z-50 font-serif">
-                        <div className="text-xs text-slate-400 mb-1">Connected Address</div>
-                        <div className="text-xs text-white font-mono break-all bg-[#0b2034] p-2 rounded mb-3 flex items-center justify-between">
-                          <span>{formatAddress(wallet.address)}</span>
-                          <button 
-                            onClick={() => {
-                              navigator.clipboard?.writeText(wallet.address);
-                              onShowToast?.({ type: 'info', title: 'Copied', message: 'Address copied to clipboard' });
-                            }}
-                            className="text-slate-400 hover:text-white"
-                          >
-                            <Copy size={12} />
-                          </button>
-                        </div>
-                        <div className="text-xs text-slate-400 mb-1">Balance</div>
-                        <div className="text-sm font-bold text-white mb-3">
-                          {wallet.balance || '0.00 ETH'}
-                        </div>
-
-                        {/* Quick Platform Fee Option */}
-                        <button
+                  {walletMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-64 rounded-lg bg-[#1a3249] border border-[#44617d]/60 p-3 shadow-2xl z-50 font-serif">
+                      <div className="text-xs text-slate-400 mb-1">Connected Address</div>
+                      <div className="text-xs text-white font-mono break-all bg-[#0b2034] p-2 rounded mb-3 flex items-center justify-between">
+                        <span>{formatAddress(wallet.address)}</span>
+                        <button 
                           onClick={() => {
-                            setWalletMenuOpen(false);
-                            setPlatformFeeModalOpen(true);
+                            navigator.clipboard?.writeText(wallet.address);
+                            onShowToast?.({ type: 'info', title: 'Copied', message: 'Address copied to clipboard' });
                           }}
-                          className="w-full flex items-center justify-between py-2 px-2 text-xs text-amber-300 hover:text-amber-200 bg-amber-400/10 hover:bg-amber-400/20 rounded transition-colors cursor-pointer mb-2 font-bold"
+                          className="text-slate-400 hover:text-white"
                         >
-                          <div className="flex items-center gap-1.5">
-                            <Crown size={14} className="text-amber-400" />
-                            <span>Platform Fee Setup</span>
-                          </div>
-                          <span className="text-[10px] text-amber-400">Manage</span>
-                        </button>
-
-                        <button
-                          onClick={disconnectWallet}
-                          className="w-full flex items-center justify-center gap-2 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors cursor-pointer"
-                        >
-                          <LogOut size={13} />
-                          <span>Disconnect Wallet</span>
+                          <Copy size={12} />
                         </button>
                       </div>
-                    )}
-                  </div>
+                      <div className="text-xs text-slate-400 mb-1">Native Balance</div>
+                      <div className="text-sm font-bold text-white mb-3 font-mono">
+                        {wallet.balance || `0.0000 ${selectedChain?.symbol || 'ETH'}`}
+                      </div>
+
+                      {/* Quick Platform Fee Option */}
+                      <button
+                        onClick={() => {
+                          setWalletMenuOpen(false);
+                          setPlatformFeeModalOpen(true);
+                        }}
+                        className="w-full flex items-center justify-between py-2 px-2 text-xs text-amber-300 hover:text-amber-200 bg-amber-400/10 hover:bg-amber-400/20 rounded transition-colors cursor-pointer mb-2 font-bold"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Crown size={14} className="text-amber-400" />
+                          <span>Platform Fee Vault</span>
+                        </div>
+                        <span className="text-[10px] text-amber-400">Manage</span>
+                      </button>
+
+                      <button
+                        onClick={disconnectWallet}
+                        className="w-full flex items-center justify-center gap-2 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors cursor-pointer"
+                      >
+                        <LogOut size={13} />
+                        <span>Disconnect Wallet</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* Connect Wallet Button matching 20lab #connect_button_erc20 */
                 <button 
-                  className="inline-flex items-center justify-center font-bold font-serif whitespace-nowrap rounded-lg ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 gap-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:brightness-75 disabled:border-black/20 bg-linear-to-r from-primary to-primary-alt text-primary-foreground hover:opacity-90 h-12 md:px-10 py-2 text-base px-2 sm:px-10 lg:px-6 xl:px-10 cursor-pointer shadow-lg shadow-[#07e3f8]/20" 
+                  className="inline-flex items-center justify-center font-bold font-serif whitespace-nowrap rounded-lg ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 gap-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:brightness-75 disabled:border-black/20 bg-linear-to-r from-primary to-primary-alt text-primary-foreground hover:opacity-90 h-10 md:px-6 py-2 text-xs cursor-pointer shadow-lg shadow-[#07e3f8]/20" 
                   id="connect_button_erc20"
                   onClick={connectWallet}
                 >
-                  Connect Wallet
+                  <Wallet size={14} />
+                  <span>Connect Wallet</span>
                 </button>
               )}
 

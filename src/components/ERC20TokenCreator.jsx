@@ -157,15 +157,108 @@ export default function ERC20TokenCreator({
     });
   };
 
+  const handleSelectChain = async (c) => {
+    setSelectedChain(c);
+    setChainModalOpen(false);
+
+    // If real Web3 wallet is connected, request switch in MetaMask / wallet
+    if (wallet?.connected && !wallet?.isSimulated && typeof window.ethereum !== 'undefined') {
+      const targetChainId = Number(c.chainId || 1);
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x' + targetChainId.toString(16) }]
+        });
+      } catch (switchErr) {
+        if (switchErr.code === 4902 || switchErr.message?.includes('Unrecognized')) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x' + targetChainId.toString(16),
+                chainName: c.name,
+                nativeCurrency: {
+                  name: c.symbol || 'ETH',
+                  symbol: c.symbol || 'ETH',
+                  decimals: 18
+                },
+                rpcUrls: [c.rpcUrl],
+                blockExplorerUrls: [c.explorer]
+              }]
+            });
+          } catch (addErr) {
+            console.error('Failed to add chain:', addErr);
+          }
+        }
+      }
+
+      // Refresh balance on selected chain
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const bal = await provider.getBalance(wallet.address);
+        setWallet(prev => ({
+          ...prev,
+          balance: `${parseFloat(ethers.formatEther(bal)).toFixed(4)} ${c.symbol || 'ETH'}`
+        }));
+      } catch (balErr) {
+        console.warn('Balance refresh error:', balErr);
+      }
+    }
+
+    onShowToast?.({
+      type: 'info',
+      title: 'Blockchain Selected',
+      message: `Selected ${c.name} (${c.isTestnet ? 'Testnet' : 'Live Mainnet'})`
+    });
+  };
+
   const handleConnectWallet = async () => {
     if (typeof window.ethereum !== 'undefined') {
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (accounts.length > 0) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await provider.send('eth_requestAccounts', []);
+        if (accounts && accounts.length > 0) {
+          const targetChainId = Number(selectedChain?.chainId || 1);
+
+          // Prompt switch if network does not match selected chain
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x' + targetChainId.toString(16) }]
+            });
+          } catch (switchErr) {
+            if (switchErr.code === 4902 || switchErr.message?.includes('Unrecognized')) {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: '0x' + targetChainId.toString(16),
+                  chainName: selectedChain.name,
+                  nativeCurrency: {
+                    name: selectedChain.symbol || 'ETH',
+                    symbol: selectedChain.symbol || 'ETH',
+                    decimals: 18
+                  },
+                  rpcUrls: [selectedChain.rpcUrl],
+                  blockExplorerUrls: [selectedChain.explorer]
+                }]
+              });
+            }
+          }
+
+          let balFormatted = '0.0000';
+          try {
+            const updatedProvider = new ethers.BrowserProvider(window.ethereum);
+            const bal = await updatedProvider.getBalance(accounts[0]);
+            balFormatted = parseFloat(ethers.formatEther(bal)).toFixed(4);
+          } catch (bErr) {
+            console.warn('Balance fetch warning:', bErr);
+          }
+
+          setSandboxMode?.(false);
           setWallet({
             connected: true,
             address: accounts[0],
-            balance: '1.240 ' + (selectedChain?.symbol || 'ETH'),
+            balance: `${balFormatted} ${selectedChain?.symbol || 'ETH'}`,
             isSimulated: false
           });
           if (!walletTaxRecipient) {
@@ -173,15 +266,28 @@ export default function ERC20TokenCreator({
           }
           onShowToast?.({
             type: 'success',
-            title: 'Wallet Connected',
-            message: `Connected account ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`
+            title: 'Live Web3 Wallet Connected',
+            message: `Connected account ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)} on ${selectedChain?.name}!`
           });
           return;
         }
       } catch (err) {
-        // user declined, fallback
+        console.error('Wallet connection error:', err);
+        onShowToast?.({
+          type: 'error',
+          title: 'Connection Cancelled',
+          message: err.message || 'User cancelled connection request'
+        });
+        return;
       }
     }
+
+    // No Web3 browser extension found
+    onShowToast?.({
+      type: 'warning',
+      title: 'Web3 Wallet Needed for Mainnet',
+      message: 'No Web3 extension detected. For live deployment, please use MetaMask or Rabby. Entering sandbox demo mode.'
+    });
     const demoAddr = '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8';
     setSandboxMode?.(true);
     setWallet({
@@ -193,14 +299,31 @@ export default function ERC20TokenCreator({
     if (!walletTaxRecipient) {
       setWalletTaxRecipient(demoAddr);
     }
-    onShowToast?.({
-      type: 'success',
-      title: 'Demo Wallet Connected',
-      message: 'Connected testnet sandbox wallet!'
-    });
   };
 
   const handleDeploy = async () => {
+    // If wallet not connected at all, prompt connection first
+    if (!wallet?.connected) {
+      onShowToast?.({
+        type: 'warning',
+        title: 'Wallet Connection Required',
+        message: 'Please connect your Web3 wallet first to deploy to the blockchain.'
+      });
+      await handleConnectWallet();
+      return;
+    }
+
+    // If in simulated demo mode but user has real Web3 wallet extension available
+    if (wallet?.isSimulated && typeof window.ethereum !== 'undefined') {
+      onShowToast?.({
+        type: 'info',
+        title: 'Connecting Web3 Wallet',
+        message: 'Connecting your Web3 wallet for live blockchain deployment...'
+      });
+      await handleConnectWallet();
+      return;
+    }
+
     setIsDeploying(true);
 
     // REAL MAINNET / LIVE WEB3 WALLET DEPLOYMENT
@@ -209,7 +332,7 @@ export default function ERC20TokenCreator({
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const network = await provider.getNetwork();
-        const targetChainId = Number(selectedChain.chainId || selectedChain.id);
+        const targetChainId = Number(selectedChain.chainId || 1);
 
         // 1. Verify network matches selected chain
         if (Number(network.chainId) !== targetChainId) {
@@ -219,7 +342,7 @@ export default function ERC20TokenCreator({
               params: [{ chainId: '0x' + targetChainId.toString(16) }]
             });
           } catch (switchErr) {
-            if (switchErr.code === 4902) {
+            if (switchErr.code === 4902 || switchErr.message?.includes('Unrecognized')) {
               await window.ethereum.request({
                 method: 'wallet_addEthereumChain',
                 params: [{
@@ -604,38 +727,64 @@ export default function ERC20TokenCreator({
                   </div>
                 </div>
 
-                {/* Connect Wallet or Connected Chain Badge */}
+                {/* Active Blockchain Card & Wallet Status */}
                 <div>
-                  <div>
-                    <div className="mt-2">
-                      {wallet?.connected ? (
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-lg bg-field border border-[#44617d]/60">
-                          <div className="flex items-center gap-3">
-                            <img src={selectedChain?.icon || '/images/crypto/1.png'} alt={selectedChain?.name} className="w-8 h-8 rounded-full" />
-                            <div>
-                              <div className="text-sm font-bold text-white font-serif">{selectedChain?.name || 'Ethereum'}</div>
-                              <div className="text-xs text-foreground/50 font-serif">Chain ID: {selectedChain?.id || 1} • {selectedChain?.currency || 'ETH'}</div>
-                            </div>
+                  <div className="mt-2 space-y-3">
+                    {/* Always visible Active Blockchain Card */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-lg bg-field border border-[#44617d]/60 shadow-inner">
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={`/images/crypto/${selectedChain?.chainId || selectedChain?.id || 1}.png`} 
+                          alt={selectedChain?.name} 
+                          className="w-9 h-9 rounded-full ring-2 ring-white/10" 
+                          onError={(e) => { e.currentTarget.src = '/images/crypto/1.png'; }}
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-white font-serif">{selectedChain?.name || 'Ethereum'}</span>
+                            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold uppercase ${selectedChain?.isTestnet ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'}`}>
+                              {selectedChain?.isTestnet ? 'Testnet' : 'Live Mainnet'}
+                            </span>
                           </div>
-                          <button 
-                            type="button"
-                            onClick={() => setChainModalOpen(true)}
-                            className="text-xs font-serif font-bold text-primary-alt hover:underline px-3 py-1.5 rounded bg-form/60 hover:bg-form border border-[#44617d]/40 cursor-pointer text-center"
-                          >
-                            Switch Blockchain
-                          </button>
+                          <div className="text-xs text-foreground/50 font-serif">
+                            Chain ID: {selectedChain?.chainId || 1} • Native: {selectedChain?.currency || selectedChain?.symbol || 'ETH'} • Fee: {selectedChain?.platformFee || '0.01 ETH'}
+                          </div>
                         </div>
-                      ) : (
-                        <button 
-                          className="inline-flex items-center justify-center font-bold font-serif whitespace-nowrap rounded-lg text-base ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 gap-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:brightness-75 disabled:border-black/20 bg-linear-to-r from-primary to-primary-alt text-primary-foreground hover:opacity-90 h-12 px-3 md:px-10 py-2 w-full cursor-pointer shadow-lg shadow-[#07e3f8]/20" 
-                          id="connect_button_erc20" 
-                          type="button"
-                          onClick={handleConnectWallet}
-                        >
-                          Connect Wallet
-                        </button>
-                      )}
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => setChainModalOpen(true)}
+                        className="text-xs font-serif font-bold text-primary-alt hover:underline px-3.5 py-2 rounded-lg bg-form/80 hover:bg-form border border-[#44617d]/60 cursor-pointer text-center transition-colors"
+                      >
+                        Switch Blockchain
+                      </button>
                     </div>
+
+                    {/* Wallet Status: Connected Info or Connect Button */}
+                    {wallet?.connected ? (
+                      <div className="flex items-center justify-between px-3.5 py-2 rounded-lg bg-emerald-950/20 border border-emerald-500/30 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                          <span className="text-slate-300 font-serif">Wallet:</span>
+                          <span className="font-mono text-emerald-300 font-bold">{wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}</span>
+                          {wallet.isSimulated && (
+                            <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.2 rounded font-mono">Demo Mode</span>
+                          )}
+                        </div>
+                        <div className="font-mono text-slate-300">
+                          {wallet.balance || `0.00 ${selectedChain?.symbol || 'ETH'}`}
+                        </div>
+                      </div>
+                    ) : (
+                      <button 
+                        className="inline-flex items-center justify-center font-bold font-serif whitespace-nowrap rounded-lg text-base ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 gap-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:brightness-75 disabled:border-black/20 bg-linear-to-r from-primary to-primary-alt text-primary-foreground hover:opacity-90 h-12 px-3 md:px-10 py-2 w-full cursor-pointer shadow-lg shadow-[#07e3f8]/20" 
+                        id="connect_button_erc20" 
+                        type="button"
+                        onClick={handleConnectWallet}
+                      >
+                        Connect Wallet to {selectedChain?.name || 'Blockchain'}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -2000,8 +2149,16 @@ export default function ERC20TokenCreator({
                   <div className="flex justify-between border-b border-[#44617d]/20 pb-2">
                     <span className="text-foreground/60">Blockchain:</span>
                     <span className="font-bold text-white flex items-center gap-2">
-                      <img src={selectedChain?.icon || '/images/crypto/1.png'} alt={selectedChain?.name} className="w-4 h-4 rounded-full" />
-                      {selectedChain?.name} ({selectedChain?.currency})
+                      <img 
+                        src={`/images/crypto/${selectedChain?.chainId || selectedChain?.id || 1}.png`} 
+                        alt={selectedChain?.name} 
+                        className="w-4 h-4 rounded-full" 
+                        onError={(e) => { e.currentTarget.src = '/images/crypto/1.png'; }}
+                      />
+                      <span>{selectedChain?.name} ({selectedChain?.currency || selectedChain?.symbol || 'ETH'})</span>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-bold uppercase ${selectedChain?.isTestnet ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'}`}>
+                        {selectedChain?.isTestnet ? 'Testnet' : 'Live Mainnet'}
+                      </span>
                     </span>
                   </div>
                   <div className="flex justify-between border-b border-[#44617d]/20 pb-2">
@@ -2102,10 +2259,13 @@ export default function ERC20TokenCreator({
                     </div>
                   </div>
 
-                  <div className="flex justify-between pt-1">
+                  <div className="flex justify-between pt-1 items-center">
                     <span className="text-foreground/60">Platform Creation Fee:</span>
-                    <span className="font-bold text-emerald-400">
-                      {platformConfig?.creationFeeEth || '0.01'} {selectedChain?.currency || 'ETH'} (Demo Testnet)
+                    <span className="font-bold text-emerald-400 flex items-center gap-2">
+                      <span>{platformConfig?.creationFeeEth || '0.01'} {selectedChain?.currency || selectedChain?.symbol || 'ETH'}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold uppercase ${selectedChain?.isTestnet ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'}`}>
+                        {selectedChain?.isTestnet ? 'Testnet' : 'Live Mainnet'}
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -2211,8 +2371,9 @@ export default function ERC20TokenCreator({
                       <tr className="border-b border-[#44617d]/40 max-md:flex max-md:flex-col">
                         <td className="border-r border-[#44617d]/40 px-4 py-3">
                           <button 
+                            type="button"
                             onClick={() => {
-                              setSelectedChain(evmChains.find(c => c.id === 1) || DEFAULT_CHAIN);
+                              handleSelectChain(evmChains.find(c => c.chainId === 1 || c.id === 'ethereum') || DEFAULT_CHAIN);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }} 
                             className="flex items-center gap-2 hover:text-[#07e3f8] cursor-pointer"
@@ -2223,8 +2384,9 @@ export default function ERC20TokenCreator({
                         </td>
                         <td className="border-r border-[#44617d]/40 px-4 py-3">
                           <button 
+                            type="button"
                             onClick={() => {
-                              setSelectedChain(evmChains.find(c => c.id === 56) || DEFAULT_CHAIN);
+                              handleSelectChain(evmChains.find(c => c.chainId === 56 || c.id === 'bsc') || DEFAULT_CHAIN);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }} 
                             className="flex items-center gap-2 hover:text-[#07e3f8] cursor-pointer"
@@ -2235,8 +2397,9 @@ export default function ERC20TokenCreator({
                         </td>
                         <td className="px-4 py-3">
                           <button 
+                            type="button"
                             onClick={() => {
-                              setSelectedChain(evmChains.find(c => c.id === 137) || DEFAULT_CHAIN);
+                              handleSelectChain(evmChains.find(c => c.chainId === 137 || c.id === 'polygon') || DEFAULT_CHAIN);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }} 
                             className="flex items-center gap-2 hover:text-[#07e3f8] cursor-pointer"
@@ -2249,8 +2412,9 @@ export default function ERC20TokenCreator({
                       <tr className="border-b border-[#44617d]/40 max-md:flex max-md:flex-col">
                         <td className="border-r border-[#44617d]/40 px-4 py-3">
                           <button 
+                            type="button"
                             onClick={() => {
-                              setSelectedChain(evmChains.find(c => c.id === 43114) || DEFAULT_CHAIN);
+                              handleSelectChain(evmChains.find(c => c.chainId === 43114 || c.id === 'avalanche') || DEFAULT_CHAIN);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }} 
                             className="flex items-center gap-2 hover:text-[#07e3f8] cursor-pointer"
@@ -2261,8 +2425,9 @@ export default function ERC20TokenCreator({
                         </td>
                         <td className="border-r border-[#44617d]/40 px-4 py-3">
                           <button 
+                            type="button"
                             onClick={() => {
-                              setSelectedChain(evmChains.find(c => c.id === 42161) || DEFAULT_CHAIN);
+                              handleSelectChain(evmChains.find(c => c.chainId === 42161 || c.id === 'arbitrum') || DEFAULT_CHAIN);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }} 
                             className="flex items-center gap-2 hover:text-[#07e3f8] cursor-pointer"
@@ -2273,8 +2438,9 @@ export default function ERC20TokenCreator({
                         </td>
                         <td className="px-4 py-3">
                           <button 
+                            type="button"
                             onClick={() => {
-                              setSelectedChain(evmChains.find(c => c.id === 10) || DEFAULT_CHAIN);
+                              handleSelectChain(evmChains.find(c => c.chainId === 10 || c.id === 'optimism') || DEFAULT_CHAIN);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }} 
                             className="flex items-center gap-2 hover:text-[#07e3f8] cursor-pointer"
@@ -2287,8 +2453,9 @@ export default function ERC20TokenCreator({
                       <tr className="border-b border-[#44617d]/40 max-md:flex max-md:flex-col">
                         <td className="border-r border-[#44617d]/40 px-4 py-3">
                           <button 
+                            type="button"
                             onClick={() => {
-                              setSelectedChain(evmChains.find(c => c.id === 8453) || DEFAULT_CHAIN);
+                              handleSelectChain(evmChains.find(c => c.chainId === 8453 || c.id === 'base') || DEFAULT_CHAIN);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }} 
                             className="flex items-center gap-2 hover:text-[#07e3f8] cursor-pointer"
@@ -2299,8 +2466,9 @@ export default function ERC20TokenCreator({
                         </td>
                         <td className="border-r border-[#44617d]/40 px-4 py-3">
                           <button 
+                            type="button"
                             onClick={() => {
-                              setSelectedChain(evmChains.find(c => c.id === 25) || DEFAULT_CHAIN);
+                              handleSelectChain(evmChains.find(c => c.chainId === 25 || c.id === 'cronos') || DEFAULT_CHAIN);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }} 
                             className="flex items-center gap-2 hover:text-[#07e3f8] cursor-pointer"
@@ -2311,8 +2479,9 @@ export default function ERC20TokenCreator({
                         </td>
                         <td className="px-4 py-3">
                           <button 
+                            type="button"
                             onClick={() => {
-                              setSelectedChain(evmChains.find(c => c.id === 369) || DEFAULT_CHAIN);
+                              handleSelectChain(evmChains.find(c => c.chainId === 369 || c.id === 'pulsechain') || DEFAULT_CHAIN);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }} 
                             className="flex items-center gap-2 hover:text-[#07e3f8] cursor-pointer"
@@ -2334,37 +2503,86 @@ export default function ERC20TokenCreator({
 
       {/* Blockchain Selection Modal */}
       {chainModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#1a3249] border border-[#44617d]/60 rounded-xl max-w-md w-full p-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#142638] border border-[#44617d]/70 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
             <button 
+              type="button"
               onClick={() => setChainModalOpen(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer"
             >
               <X size={20} />
             </button>
-            <h3 className="text-lg font-bold font-serif text-white mb-2">Select EVM Blockchain</h3>
-            <p className="text-xs text-foreground/50 font-serif mb-4">Choose the blockchain where you want to deploy your token.</p>
+            <h3 className="text-lg font-bold font-serif text-white mb-1">Select Blockchain</h3>
+            <p className="text-xs text-foreground/50 font-serif mb-4">Choose where to deploy your token. Real tokens deploy to Live Mainnets.</p>
             
-            <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
-              {evmChains.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => {
-                    setSelectedChain(c);
-                    setChainModalOpen(false);
-                  }}
-                  className={`flex items-center w-full gap-3 p-2.5 rounded-lg text-left transition-colors cursor-pointer ${
-                    selectedChain?.id === c.id ? 'bg-[#07e3f8]/20 text-[#07e3f8] font-bold border border-[#07e3f8]/40' : 'hover:bg-white/10 text-slate-300'
-                  }`}
-                >
-                  <img src={c.icon} alt={c.name} className="w-6 h-6 rounded-full" />
-                  <div className="flex-1">
-                    <div className="text-sm font-serif">{c.name}</div>
-                    <div className="text-xs text-slate-400 font-serif">Chain ID: {c.id} • {c.currency}</div>
-                  </div>
-                  {selectedChain?.id === c.id && <Check size={16} />}
-                </button>
-              ))}
+            <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
+              <div>
+                <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider px-2 py-1 mb-1.5 flex items-center justify-between">
+                  <span>Live Mainnets</span>
+                  <span className="text-[10px] text-emerald-400/80 font-mono">100% Real Assets</span>
+                </div>
+                <div className="space-y-1">
+                  {evmChains.filter(c => !c.isTestnet).map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => handleSelectChain(c)}
+                      className={`flex items-center w-full gap-3 p-2.5 rounded-xl text-left transition-colors cursor-pointer ${
+                        selectedChain?.id === c.id ? 'bg-[#07e3f8]/20 text-[#07e3f8] font-bold border border-[#07e3f8]/50' : 'hover:bg-white/10 text-slate-200'
+                      }`}
+                    >
+                      <img 
+                        src={`/images/crypto/${c.chainId}.png`} 
+                        alt={c.name} 
+                        className="w-7 h-7 rounded-full shrink-0" 
+                        onError={(e) => { e.currentTarget.src = '/images/crypto/1.png'; }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-serif truncate">{c.name}</span>
+                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">MAINNET</span>
+                        </div>
+                        <div className="text-xs text-slate-400 font-serif">Chain ID: {c.chainId} • {c.currency || c.symbol} • Fee: {c.platformFee}</div>
+                      </div>
+                      {selectedChain?.id === c.id && <Check size={18} className="text-[#07e3f8] shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[11px] font-bold text-amber-400 uppercase tracking-wider px-2 py-1 mb-1.5 pt-2 border-t border-slate-700/60 flex items-center justify-between">
+                  <span>Testnets</span>
+                  <span className="text-[10px] text-slate-400 font-mono">Free Testing</span>
+                </div>
+                <div className="space-y-1">
+                  {evmChains.filter(c => c.isTestnet).map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => handleSelectChain(c)}
+                      className={`flex items-center w-full gap-3 p-2.5 rounded-xl text-left transition-colors cursor-pointer ${
+                        selectedChain?.id === c.id ? 'bg-[#07e3f8]/20 text-[#07e3f8] font-bold border border-[#07e3f8]/50' : 'hover:bg-white/10 text-slate-200'
+                      }`}
+                    >
+                      <img 
+                        src={`/images/crypto/${c.chainId}.png`} 
+                        alt={c.name} 
+                        className="w-7 h-7 rounded-full shrink-0" 
+                        onError={(e) => { e.currentTarget.src = '/images/crypto/1.png'; }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-serif truncate">{c.name}</span>
+                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">TESTNET</span>
+                        </div>
+                        <div className="text-xs text-slate-400 font-serif">Chain ID: {c.chainId} • {c.currency || c.symbol}</div>
+                      </div>
+                      {selectedChain?.id === c.id && <Check size={18} className="text-[#07e3f8] shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
