@@ -12,12 +12,14 @@ import {
   Layers,
   Coins,
   Send,
-  Code
+  Code,
+  Crown
 } from 'lucide-react';
 
 export default function LandingPage({
   onNavigate,
-  onShowToast
+  onShowToast,
+  onOpenPlatformFee
 }) {
   const [pricingTab, setPricingTab] = useState('erc20'); // 'spl', 'erc20', 'sui'
   const [pricingSubTab, setPricingSubTab] = useState('generator'); // 'generator', 'tools'
@@ -873,6 +875,16 @@ export default function LandingPage({
                 <li><button onClick={() => onNavigate('/multisender')} className="hover:text-[#07e3f8] text-left cursor-pointer">MultiSender Airdrop</button></li>
                 <li><button onClick={() => onNavigate('/studio')} className="hover:text-[#07e3f8] text-left cursor-pointer">Solidity Studio</button></li>
                 <li><button onClick={() => onNavigate('/dashboard/')} className="hover:text-[#07e3f8] text-left cursor-pointer">Owner Dashboard</button></li>
+                <li>
+                  <button 
+                    type="button"
+                    onClick={onOpenPlatformFee} 
+                    className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1.5 cursor-pointer text-left transition-colors pt-1"
+                  >
+                    <Crown size={13} className="text-amber-400" />
+                    <span>Platform Fee Setup</span>
+                  </button>
+                </li>
               </ul>
             </div>
 
@@ -892,7 +904,16 @@ export default function LandingPage({
 
           <div className="border-t border-[#44617d]/20 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
             <div>&copy; 2026 RobinPump Deployer. All rights reserved.</div>
-            <div className="flex gap-6">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+              <button
+                type="button"
+                onClick={onOpenPlatformFee}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-serif font-bold text-amber-300 hover:text-amber-200 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-lg cursor-pointer transition-all shadow-xs"
+                title="Configure Platform Fee & Treasury"
+              >
+                <Crown size={13} className="text-amber-400" />
+                <span>Platform Fee Setup</span>
+              </button>
               <span>Privacy Policy</span>
               <span>Terms of Service</span>
               <span>Safety &amp; Trust</span>
