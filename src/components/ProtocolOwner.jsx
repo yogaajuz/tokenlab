@@ -364,6 +364,21 @@ export default function ProtocolOwner({
               </div>
             </div>
 
+            {registryData.factoryAddress && (
+              <div className="flex items-center justify-between space-x-4">
+                <span className="text-slate-400">Factory Address:</span>
+                <div className="flex items-center space-x-1 font-mono text-[#07e3f8]">
+                  <span>{registryData.factoryAddress.slice(0, 6)}...{registryData.factoryAddress.slice(-4)}</span>
+                  <button 
+                    onClick={() => copyToClipboard(registryData.factoryAddress, 'Factory Address')}
+                    className="hover:text-white"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between space-x-4">
               <span className="text-slate-400">Contract Owner:</span>
               <div className="flex items-center space-x-1 font-mono text-slate-300">

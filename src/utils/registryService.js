@@ -74,21 +74,38 @@ export async function deployRegistryOnChain(signer, initialFeeEther, customOwner
   const ownerAddress = customOwner || deployer;
   const feeWei = ethers.parseEther(initialFeeEther.toString());
 
-  const factory = new ethers.ContractFactory(
+  // 1. Deploy TokenRegistry
+  const regFactory = new ethers.ContractFactory(
     TokenRegistryArtifact.abi,
     TokenRegistryArtifact.bytecode,
     signer
   );
 
-  const registryContract = await factory.deploy(ownerAddress, feeWei);
+  const registryContract = await regFactory.deploy(ownerAddress, feeWei);
   await registryContract.waitForDeployment();
   const address = await registryContract.getAddress();
+
+  // 2. Deploy TokenFactory connected to the TokenRegistry
+  let factoryAddress = '';
+  try {
+    const tknFactory = new ethers.ContractFactory(
+      TokenFactoryArtifact.abi,
+      TokenFactoryArtifact.bytecode,
+      signer
+    );
+    const tokenFactoryContract = await tknFactory.deploy(address);
+    await tokenFactoryContract.waitForDeployment();
+    factoryAddress = await tokenFactoryContract.getAddress();
+  } catch (err) {
+    console.warn('Optional TokenFactory deployment skipped:', err);
+  }
 
   const network = await signer.provider.getNetwork();
   const chainId = Number(network.chainId);
 
   const record = {
     address,
+    factoryAddress: factoryAddress || address,
     owner: ownerAddress,
     creationFee: initialFeeEther.toString(),
     vaultBalance: '0.000',
