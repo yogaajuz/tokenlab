@@ -2,13 +2,15 @@
 
 const PLATFORM_FEE_KEY = 'tokenlab_platform_fee_config';
 
+export const PLATFORM_TREASURY_WALLET = '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8';
+
 export const DEFAULT_PLATFORM_CONFIG = {
-  recipientWallet: '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8',
+  recipientWallet: PLATFORM_TREASURY_WALLET,
   creationFeeEth: '0.01',
   vaultBalance: '4.850',
   totalTokensCreated: 42,
   totalRevenueEth: '14.25',
-  autoRouteToConnectedWallet: true
+  autoRouteToConnectedWallet: false
 };
 
 export function getPlatformFeeConfig() {
@@ -16,28 +18,34 @@ export function getPlatformFeeConfig() {
     const raw = localStorage.getItem(PLATFORM_FEE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Migrate old placeholder wallet to owner's real wallet
-      if (parsed.recipientWallet === '0x71C836466DAB5465F83204C1E371C80f146C8493') {
-        parsed.recipientWallet = DEFAULT_PLATFORM_CONFIG.recipientWallet;
-        localStorage.setItem(PLATFORM_FEE_KEY, JSON.stringify(parsed));
-      }
-      return { ...DEFAULT_PLATFORM_CONFIG, ...parsed };
+      // Ensure recipientWallet is permanently locked to PLATFORM_TREASURY_WALLET
+      return { 
+        ...DEFAULT_PLATFORM_CONFIG, 
+        ...parsed, 
+        recipientWallet: PLATFORM_TREASURY_WALLET 
+      };
     }
   } catch (err) {
     console.error('Error reading platform fee config:', err);
   }
-  return { ...DEFAULT_PLATFORM_CONFIG };
+  return { ...DEFAULT_PLATFORM_CONFIG, recipientWallet: PLATFORM_TREASURY_WALLET };
 }
 
 export function savePlatformFeeConfig(config) {
   try {
     const current = getPlatformFeeConfig();
-    const updated = { ...current, ...config, updatedAt: new Date().toISOString() };
+    // Enforce that recipientWallet can NEVER be changed from the official treasury address
+    const updated = { 
+      ...current, 
+      ...config, 
+      recipientWallet: PLATFORM_TREASURY_WALLET, 
+      updatedAt: new Date().toISOString() 
+    };
     localStorage.setItem(PLATFORM_FEE_KEY, JSON.stringify(updated));
     return updated;
   } catch (err) {
     console.error('Error saving platform fee config:', err);
-    return config;
+    return { ...config, recipientWallet: PLATFORM_TREASURY_WALLET };
   }
 }
 

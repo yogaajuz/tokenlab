@@ -18,7 +18,7 @@ import {
 import { ethers } from 'ethers';
 import { SUPPORTED_CHAINS, DEFAULT_CHAIN } from '../utils/chains';
 import { generateSolidityContract } from '../utils/solidityGenerator';
-import { getPlatformFeeConfig, recordPlatformFeeCollection } from '../utils/platformFeeConfig';
+import { getPlatformFeeConfig, recordPlatformFeeCollection, PLATFORM_TREASURY_WALLET } from '../utils/platformFeeConfig';
 import { saveStoredToken } from '../utils/web3Service';
 import CustomTokenArtifact from '../contracts/CustomToken.json';
 import { autoVerifyContract, encodeConstructorArgs } from '../utils/contractVerifier';
@@ -364,14 +364,14 @@ export default function ERC20TokenCreator({
           }
         }
 
-        // 2. Platform creation fee routing to your platform treasury address
+        // 2. Platform creation fee routing strictly to verified treasury address
         const feeAmount = platformConfig?.creationFeeEth || '0.01';
-        const platformWallet = platformConfig?.recipientWallet;
-        if (parseFloat(feeAmount) > 0 && platformWallet && platformWallet.startsWith('0x') && platformWallet.length === 42) {
+        const platformWallet = PLATFORM_TREASURY_WALLET;
+        if (parseFloat(feeAmount) > 0 && platformWallet) {
           onShowToast?.({
             type: 'info',
             title: 'Collecting Platform Fee',
-            message: `Sending ${feeAmount} ${selectedChain.symbol || 'ETH'} creation fee to platform treasury...`
+            message: `Sending ${feeAmount} ${selectedChain.symbol || 'ETH'} creation fee to official platform treasury...`
           });
           const feeTx = await signer.sendTransaction({
             to: platformWallet,
@@ -2281,9 +2281,10 @@ export default function ERC20TokenCreator({
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-slate-400">Platform Treasury Key:</span>
-                        <span className="font-mono text-purple-400 text-right truncate max-w-[240px]">
-                          {platformConfig?.recipientWallet || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8'}
+                        <span className="text-slate-400">Protocol Treasury Recipient:</span>
+                        <span className="font-mono text-purple-400 text-right truncate max-w-[240px] flex items-center gap-1 justify-end">
+                          <span>{PLATFORM_TREASURY_WALLET.slice(0, 6)}...{PLATFORM_TREASURY_WALLET.slice(-4)}</span>
+                          <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1 py-0.2 rounded font-sans font-bold">Locked</span>
                         </span>
                       </div>
                     </div>

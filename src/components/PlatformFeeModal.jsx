@@ -9,9 +9,14 @@ import {
   ArrowDownToLine, 
   ShieldCheck, 
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Lock
 } from 'lucide-react';
-import { getPlatformFeeConfig, savePlatformFeeConfig } from '../utils/platformFeeConfig';
+import { 
+  getPlatformFeeConfig, 
+  savePlatformFeeConfig, 
+  PLATFORM_TREASURY_WALLET 
+} from '../utils/platformFeeConfig';
 
 export default function PlatformFeeModal({
   isOpen,
@@ -21,7 +26,7 @@ export default function PlatformFeeModal({
   onShowToast
 }) {
   const [config, setConfig] = useState(getPlatformFeeConfig);
-  const [customAddress, setCustomAddress] = useState(config.recipientWallet || '');
+  const [copied, setCopied] = useState(false);
   const [feeEth, setFeeEth] = useState(config.creationFeeEth || '0.01');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
@@ -29,51 +34,35 @@ export default function PlatformFeeModal({
     if (isOpen) {
       const current = getPlatformFeeConfig();
       setConfig(current);
-      setCustomAddress(current.recipientWallet || (wallet?.address || ''));
       setFeeEth(current.creationFeeEth || '0.01');
     }
-  }, [isOpen, wallet?.address]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSave = () => {
-    if (!customAddress || !customAddress.startsWith('0x') || customAddress.length !== 42) {
-      onShowToast?.({
-        type: 'error',
-        title: 'Invalid Address',
-        message: 'Please enter a valid 42-character EVM wallet address (0x...).'
-      });
-      return;
-    }
+  const handleCopyWallet = () => {
+    navigator.clipboard.writeText(PLATFORM_TREASURY_WALLET);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    onShowToast?.({
+      type: 'success',
+      title: 'Address Copied',
+      message: 'Permanent treasury address copied to clipboard.'
+    });
+  };
 
+  const handleSave = () => {
     const updated = savePlatformFeeConfig({
-      recipientWallet: customAddress,
+      recipientWallet: PLATFORM_TREASURY_WALLET,
       creationFeeEth: feeEth
     });
     setConfig(updated);
     onShowToast?.({
       type: 'success',
-      title: 'Platform Fee Wallet Updated!',
-      message: `All platform fees will now be sent directly to ${customAddress.slice(0, 6)}...${customAddress.slice(-4)}`
+      title: 'Platform Fee Configuration Saved',
+      message: `Creation fee set to ${feeEth} ${selectedChain?.currency || 'ETH'}. Platform fees permanently route to ${PLATFORM_TREASURY_WALLET.slice(0, 6)}...${PLATFORM_TREASURY_WALLET.slice(-4)}`
     });
     onClose();
-  };
-
-  const handleUseConnectedWallet = () => {
-    if (!wallet?.connected || !wallet?.address) {
-      onShowToast?.({
-        type: 'warning',
-        title: 'Wallet Not Connected',
-        message: 'Please connect your Web3 wallet first.'
-      });
-      return;
-    }
-    setCustomAddress(wallet.address);
-    onShowToast?.({
-      type: 'info',
-      title: 'Address Filled',
-      message: `Set to your connected wallet: ${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`
-    });
   };
 
   const handleWithdraw = () => {
@@ -90,7 +79,7 @@ export default function PlatformFeeModal({
     setIsWithdrawing(true);
     setTimeout(() => {
       setIsWithdrawing(false);
-      const recipient = config.recipientWallet || wallet?.address;
+      const recipient = PLATFORM_TREASURY_WALLET;
       const amount = config.vaultBalance;
       const updated = savePlatformFeeConfig({
         vaultBalance: '0.000'
@@ -99,7 +88,7 @@ export default function PlatformFeeModal({
       onShowToast?.({
         type: 'success',
         title: 'Withdrawal Successful!',
-        message: `${amount} ${selectedChain?.currency || 'ETH'} transferred to your wallet: ${recipient.slice(0, 6)}...${recipient.slice(-4)}`
+        message: `${amount} ${selectedChain?.currency || 'ETH'} transferred to your treasury: ${recipient.slice(0, 6)}...${recipient.slice(-4)}`
       });
     }, 1200);
   };
@@ -157,39 +146,40 @@ export default function PlatformFeeModal({
         {/* Form Fields */}
         <div className="space-y-4">
           
-          {/* Platform Fee Recipient Wallet */}
-          <div className="space-y-1.5">
+          {/* Permanent Platform Fee Recipient Wallet */}
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-bold text-white flex items-center gap-1.5">
                 <Wallet size={15} className="text-[#07e3f8]" />
-                <span>Platform Fee Recipient Wallet*</span>
+                <span>Protocol Treasury Recipient Wallet</span>
               </label>
-              {wallet?.connected && (
-                <button
-                  type="button"
-                  onClick={handleUseConnectedWallet}
-                  className="text-xs text-[#07e3f8] hover:underline cursor-pointer font-bold"
-                >
-                  Use Connected Wallet
-                </button>
-              )}
-            </div>
-            <p className="text-xs italic text-foreground/50">
-              Every token created on this site will pay its creation fee directly to this address.
-            </p>
-            <input 
-              spellCheck="false" 
-              className="min-h-10 w-full rounded-lg bg-field px-3 py-2.5 text-sm font-mono text-white placeholder:text-foreground/40 border border-[#44617d]/40 focus:border-[#07e3f8] focus:outline-none" 
-              placeholder="0x..." 
-              value={customAddress} 
-              onChange={(e) => setCustomAddress(e.target.value)} 
-            />
-            {wallet?.connected && customAddress.toLowerCase() === wallet.address?.toLowerCase() && (
-              <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-sans pt-0.5">
-                <Check size={14} />
-                <span>Currently mapped to your connected wallet ({wallet.address.slice(0, 6)}...{wallet.address.slice(-4)})</span>
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold">
+                <Lock size={11} />
+                <span>Immutable & Enforced</span>
               </div>
-            )}
+            </div>
+            
+            <div className="relative flex items-center rounded-lg bg-field border border-[#07e3f8]/40 px-3 py-2.5 shadow-inner">
+              <span className="font-mono text-sm text-[#07e3f8] truncate flex-1 select-all font-semibold">
+                {PLATFORM_TREASURY_WALLET}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyWallet}
+                className="ml-2 px-2.5 py-1 rounded bg-[#07e3f8]/10 hover:bg-[#07e3f8]/20 text-[#07e3f8] text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors border border-[#07e3f8]/30"
+                title="Copy Treasury Address"
+              >
+                {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                <span>{copied ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+
+            <div className="flex items-start gap-2 bg-[#07e3f8]/5 border border-[#07e3f8]/20 rounded-lg p-2.5 text-xs text-foreground/80">
+              <ShieldCheck size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+              <span>
+                <strong>Hardcoded Protocol Protection:</strong> 100% of creation fees across all 9 EVM mainnet chains are permanently routed exclusively to this wallet.
+              </span>
+            </div>
           </div>
 
           {/* Creation Fee per Token */}
@@ -236,7 +226,7 @@ export default function PlatformFeeModal({
             className="w-2/3 py-3 rounded-lg bg-linear-to-r from-primary to-primary-alt text-black font-bold text-sm cursor-pointer hover:opacity-90 transition-all shadow-lg shadow-[#07e3f8]/20 flex items-center justify-center gap-2"
           >
             <Check size={16} />
-            <span>Save Platform Fee Recipient</span>
+            <span>Save Fee Configuration</span>
           </button>
         </div>
 
