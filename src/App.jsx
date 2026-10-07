@@ -135,7 +135,7 @@ export default function App() {
               setSandboxMode={setSandboxMode}
               onShowToast={showToast}
               onTokenDeployed={(token) => {
-                navigate('/dashboard/');
+                // Token successfully deployed and saved
               }}
               onViewCode={(code) => {
                 setStudioCode(code);
@@ -162,13 +162,17 @@ export default function App() {
             />
           )}
 
-          {/* Route 6: Dashboard */}
-          {normalizedPath === '/dashboard' && (
+          {/* Route 6: Token Owner Dashboard */}
+          {normalizedPath.startsWith('/dashboard') && (
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
               <TokenDashboard
                 wallet={wallet}
                 selectedChain={selectedChain}
                 onShowToast={showToast}
+                targetAddress={
+                  normalizedPath.replace(/^\/dashboard/, '').replace(/^\//, '') || null
+                }
+                onNavigate={navigate}
               />
             </main>
           )}

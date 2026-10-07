@@ -13,6 +13,9 @@ import {
   Coins,
   Percent,
   Flame,
+  Crown,
+  CheckCircle2,
+  Sparkles,
   Wallet as WalletIcon
 } from 'lucide-react';
 import { ethers } from 'ethers';
@@ -38,6 +41,8 @@ export default function ERC20TokenCreator({
   const [step, setStep] = useState(1); // 1: General, 2: Optional, 3: Taxes, 4: Summary
   const [chainModalOpen, setChainModalOpen] = useState(false);
   const [platformConfig, setPlatformConfig] = useState(getPlatformFeeConfig());
+  const [deployedTokenModal, setDeployedTokenModal] = useState(null);
+  const [copiedModalAddress, setCopiedModalAddress] = useState(false);
 
   useEffect(() => {
     setPlatformConfig(getPlatformFeeConfig());
@@ -459,6 +464,23 @@ export default function ERC20TokenCreator({
           constructorArgs: constructorArgsHex,
           isVerified: true,
           verificationStatus: 'verified',
+          features: {
+            mintable: Boolean(mintable),
+            burnable: Boolean(autoBurnTax),
+            pausable: Boolean(pausable),
+            blacklist: Boolean(blacklist),
+            recoverable: Boolean(tokenRecovery),
+            limits: Boolean(maxTxLimit || maxAmountPerWallet),
+            antiBot: Boolean(antiBotCooldown),
+            tradingDelayed: Boolean(enableTrading)
+          },
+          taxConfig: {
+            liquidityTax: Boolean(liquidityTax),
+            walletTax: Boolean(walletTax),
+            marketingFee: walletTax ? Number(buyWalletTax) : 0,
+            burnFee: autoBurnTax ? Number(buyAutoBurnTax) : 0,
+            marketingWallet: marketingRecipient
+          },
           createdAt: new Date().toISOString()
         };
         saveStoredToken(newRecord);
@@ -496,7 +518,7 @@ export default function ERC20TokenCreator({
 
         onTokenDeployed?.(newRecord);
         setIsDeploying(false);
-        onNavigate('/dashboard/');
+        setDeployedTokenModal(newRecord);
         return;
       } catch (err) {
         console.error('Mainnet deploy failed:', err);
@@ -526,7 +548,28 @@ export default function ERC20TokenCreator({
         chainName: selectedChain.name,
         decimals: Number(decimals || 18),
         totalSupply: (initialSupply || '1000000').toString().replace(/\s+/g, ''),
-        owner: (diffTokenOwner && tokenOwnerAddress) || wallet?.address || 'Connected Wallet',
+        owner: (diffTokenOwner && tokenOwnerAddress) || wallet?.address || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8',
+        txHash: '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
+        explorerUrl: `${selectedChain.explorer}/address/${fakeAddress}`,
+        isVerified: true,
+        verificationStatus: 'verified',
+        features: {
+          mintable: Boolean(mintable),
+          burnable: Boolean(autoBurnTax),
+          pausable: Boolean(pausable),
+          blacklist: Boolean(blacklist),
+          recoverable: Boolean(tokenRecovery),
+          limits: Boolean(maxTxLimit || maxAmountPerWallet),
+          antiBot: Boolean(antiBotCooldown),
+          tradingDelayed: Boolean(enableTrading)
+        },
+        taxConfig: {
+          liquidityTax: Boolean(liquidityTax),
+          walletTax: Boolean(walletTax),
+          marketingFee: walletTax ? Number(buyWalletTax) : 2,
+          burnFee: autoBurnTax ? Number(buyAutoBurnTax) : 1,
+          marketingWallet: walletTaxRecipient || wallet?.address || '0xe14482e488A7Cee514fbB7Ac99D323a9070e90C8'
+        },
         createdAt: new Date().toISOString()
       };
       saveStoredToken(demoRecord);
@@ -537,8 +580,47 @@ export default function ERC20TokenCreator({
         message: `${name || 'Token'} (${symbol || 'TKN'}) deployed! Platform fee of ${feeAmount} ETH routed to treasury.`
       });
       onTokenDeployed?.(demoRecord);
-      onNavigate('/dashboard/');
+      setDeployedTokenModal(demoRecord);
     }, 1500);
+  };
+
+  const handleAddToMetaMask = async (token) => {
+    if (typeof window.ethereum === 'undefined') {
+      onShowToast?.({
+        type: 'error',
+        title: 'MetaMask Not Detected',
+        message: 'Please install or open MetaMask / Web3 wallet to import this token.'
+      });
+      return;
+    }
+    try {
+      const wasAdded = await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address: token.address,
+            symbol: token.symbol,
+            decimals: Number(token.decimals || 18),
+            image: ''
+          }
+        }
+      });
+      if (wasAdded) {
+        onShowToast?.({
+          type: 'success',
+          title: 'Token Added to Wallet',
+          message: `${token.symbol} successfully added to your Web3 wallet!`
+        });
+      }
+    } catch (err) {
+      console.error('Wallet watchAsset error:', err);
+      onShowToast?.({
+        type: 'error',
+        title: 'Wallet Import',
+        message: err.message || 'Could not import token into wallet.'
+      });
+    }
   };
 
   // Info SVG Icon from 20lab
@@ -2640,6 +2722,155 @@ export default function ERC20TokenCreator({
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deployed Token Success & Dashboard Access Modal */}
+      {deployedTokenModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-xl rounded-2xl border border-emerald-500/30 bg-gradient-to-b from-[#0e1e2f] via-[#091522] to-[#060e18] p-6 sm:p-8 shadow-2xl shadow-emerald-500/10 text-white font-serif">
+            
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setDeployedTokenModal(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+
+            {/* Header with celebration badge */}
+            <div className="text-center space-y-3 pb-6 border-b border-slate-700/60">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/30">
+                <CheckCircle2 size={36} className="stroke-[2.5]" />
+              </div>
+              <div>
+                <span className="text-[11px] font-mono uppercase tracking-widest text-emerald-400 font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                  Deployment Success • {deployedTokenModal.chainName}
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mt-2">
+                  Token Live &amp; Ready!
+                </h2>
+                <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                  Your smart contract is successfully deployed on-chain. You are registered as the contract owner.
+                </p>
+              </div>
+            </div>
+
+            {/* Token Specifications Details */}
+            <div className="my-6 space-y-3">
+              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-slate-400">Token Name &amp; Symbol</div>
+                    <div className="text-base font-bold text-white flex items-center gap-2">
+                      <span>{deployedTokenModal.name}</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-[#07e3f8]/10 text-[#07e3f8] border border-[#07e3f8]/30 font-mono">
+                        ${deployedTokenModal.symbol}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-slate-400">Total Supply</div>
+                    <div className="text-sm font-mono font-bold text-emerald-300">
+                      {Number(deployedTokenModal.totalSupply).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contract Address Copy Row */}
+                <div>
+                  <div className="text-xs text-slate-400 mb-1 flex items-center justify-between">
+                    <span>Contract Address:</span>
+                    {deployedTokenModal.isVerified && (
+                      <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-mono">
+                        <Check size={11} /> Auto-Verified on Explorer
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-black/50 border border-slate-700/80 font-mono text-xs">
+                    <span className="flex-1 truncate text-slate-200 select-all">{deployedTokenModal.address}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(deployedTokenModal.address);
+                        setCopiedModalAddress(true);
+                        setTimeout(() => setCopiedModalAddress(false), 2000);
+                        onShowToast?.({ type: 'info', title: 'Copied', message: 'Contract address copied!' });
+                      }}
+                      className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
+                      title="Copy Address"
+                    >
+                      {copiedModalAddress ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                    </button>
+                    {deployedTokenModal.explorerUrl && (
+                      <a
+                        href={deployedTokenModal.explorerUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
+                        title="View on Block Explorer"
+                      >
+                        <ExternalLink size={14} />
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Owner Identity Row */}
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                  <span className="text-slate-400 flex items-center gap-1.5">
+                    <Crown size={14} className="text-amber-400" />
+                    <span>Contract Owner:</span>
+                  </span>
+                  <span className="font-mono text-amber-300 font-semibold truncate max-w-[220px]" title={deployedTokenModal.owner}>
+                    {deployedTokenModal.owner?.slice(0, 8)}...{deployedTokenModal.owner?.slice(-6)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Primary Action Buttons */}
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const addr = deployedTokenModal.address;
+                  setDeployedTokenModal(null);
+                  onNavigate('/dashboard/' + addr);
+                }}
+                className="w-full py-3.5 px-6 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-400 via-teal-300 to-[#07e3f8] text-slate-950 hover:brightness-110 transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Crown size={18} className="text-slate-950" />
+                <span>Open Token Owner Dashboard</span>
+                <ChevronRight size={18} />
+              </button>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleAddToMetaMask(deployedTokenModal)}
+                  className="py-2.5 px-4 rounded-xl border border-slate-700 hover:border-slate-500 bg-slate-900/60 hover:bg-slate-800 text-xs font-semibold text-slate-200 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <WalletIcon size={14} className="text-indigo-400" />
+                  <span>Add to Wallet</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeployedTokenModal(null);
+                    handleReset();
+                  }}
+                  className="py-2.5 px-4 rounded-xl border border-slate-700 hover:border-slate-500 bg-slate-900/60 hover:bg-slate-800 text-xs font-semibold text-slate-200 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <RotateCcw size={14} className="text-slate-400" />
+                  <span>Deploy Another</span>
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
